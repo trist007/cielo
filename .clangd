@@ -1,0 +1,20 @@
+CompileFlags:
+  Compiler: cl
+  Add:
+    - /I.
+    - /I..\Include
+    - /I..\Include\assimp5
+
+---
+
+If:
+  PathMatch: .*\.(c|h)$
+CompileFlags:
+  Add: /TC
+
+---
+
+If:
+  PathMatch: .*\.(cpp|cc|cxx|hpp|h)$
+CompileFlags:
+  Add: /TP
