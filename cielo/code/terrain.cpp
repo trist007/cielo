@@ -8,7 +8,10 @@
 
 #include "terrain.h"
 
-//#define DEBUG_PRINT
+void initTerrain(BaseTerrain* baseTerrain, float WorldScale)
+{
+  
+}
 
 void BaseTerrain::InitTerrain(float WorldScale)
 {

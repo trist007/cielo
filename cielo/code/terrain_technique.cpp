@@ -16,14 +16,39 @@
 */
 
 #include "ogldev_util.h"
+#include "technique.h"
 #include "terrain_technique.h"
 
-
-
-
-TerrainTechnique::TerrainTechnique()
+bool initTerrainTech(void)
 {
+  if (!initTechnique())
+    return(false);
+
+    if (!AddShader(GL_VERTEX_SHADER, "terrain.vs")) {
+        return false;
+    }
+
+    if (!AddShader(GL_FRAGMENT_SHADER, "terrain.fs")) {
+        return false;
+    }
+
+    if (!Finalize()) {
+        return false;
+    }
+
+    m_VPLoc = GetUniformLocation("gVP");
+
+    if (m_VPLoc == INVALID_UNIFORM_LOCATION) {
+        return false;
+    }
+
+    return true;
 }
+
+void setVP(const Matrix4f* VP);
+
+
+
 
 bool TerrainTechnique::Init()
 {
