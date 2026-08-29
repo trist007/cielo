@@ -12,7 +12,6 @@
 
 #include "terrain.h"
 
-/* was: void loadHeightMapFile(const char* pFilename) */
 void terrainLoadHeightMapFile(BaseTerrain* terrain, const char* pFilename)
 {
   int FileSize = 0;
@@ -35,44 +34,33 @@ void terrainLoadHeightMapFile(BaseTerrain* terrain, const char* pFilename)
 
   terrain->heightMap.rows = terrain->terrainSize;
   terrain->heightMap.cols = terrain->terrainSize;
-  terrain->heightMap.data = (float*)p;   /* takes ownership of p - free it in a Terrain_Destroy if needed */
+  terrain->heightMap.data = (float*)p;
 }
 
-/* was: void loadFromFile(const char* pFilename) */
 void terrainLoadFromFile(BaseTerrain* terrain, const char* pFilename)
 {
   terrainLoadHeightMapFile(terrain, pFilename);
   triangleListCreate(&terrain->triangleList, terrain->terrainSize, terrain->terrainSize, terrain);
 }
 
-/* camera.c */
 HMM_Mat4 Camera_GetViewProjMatrix(const BasicCamera* camera)
 {
+
   HMM_Vec3 eye    = camera->pos;
-  HMM_Vec3 center = HMM_AddV3(camera->pos, camera->target);  /* target is a direction, LookAt wants a point */
+  HMM_Vec3 center = HMM_AddV3(camera->pos, camera->target);
   HMM_Vec3 up     = camera->up;
 
   HMM_Mat4 view = HMM_LookAt_RH(eye, center, up);
 
-  /* camera->projection was already built in initBasicCamera via HMM_Perspective_RH_NO */
   return HMM_MulM4(camera->projection, view);
 }
 
-/* was: void render(const BasicCamera& Camera) */
 void terrainRender(BaseTerrain* terrain, const BasicCamera* camera)
 {
   HMM_Mat4 VP = Camera_GetViewProjMatrix(camera);
 
   glUseProgram(terrain->shaderProg);
-  /*
-    void glUniformMatrix4fv(
-    GLint location, 
-    GLsizei count, 
-    GLboolean transpose, 
-    const GLfloat *value
-    );
-  */
-  glUniformMatrix4fv(terrain->VPLoc, 1, GL_FALSE, (const GLfloat*)&VP);  /* m_terrainTech.SetVP(VP) */
+  glUniformMatrix4fv(terrain->VPLoc, 1, GL_FALSE, (const GLfloat*)&VP);
 
   triangleListRender(&terrain->triangleList);
 }
@@ -91,7 +79,6 @@ void triangleListCreate(TriangleList* tl, int width, int depth, BaseTerrain* ter
     exit(0);
   }
 
-  /* build vertex grid, one vertex per heightmap sample */
   int index = 0;
   for (int z = 0; z < depth; z++) {
     for (int x = 0; x < width; x++) {
@@ -102,10 +89,8 @@ void triangleListCreate(TriangleList* tl, int width, int depth, BaseTerrain* ter
     }
   }
 
-  /* stitch each quad into two triangles */
   int idx = 0;
 
-  /*
   for (int z = 0; z < depth - 1; z++) {
       for (int x = 0; x < width - 1; x++) {
           GLuint indexBottomLeft  = (GLuint)(z * width + x);
@@ -121,23 +106,6 @@ void triangleListCreate(TriangleList* tl, int width, int depth, BaseTerrain* ter
           indices[idx++] = indexTopRight;
           indices[idx++] = indexBottomRight;
       }
-  }
-  */
-  for (int z = 0; z < depth - 1; z++) {
-    for (int x = 0; x < width - 1; x++) {
-      GLuint topLeft     = (GLuint)(z * width + x);
-      GLuint topRight    = (GLuint)(z * width + x + 1);
-      GLuint bottomLeft  = (GLuint)((z + 1) * width + x);
-      GLuint bottomRight = (GLuint)((z + 1) * width + x + 1);
-
-      indices[idx++] = topLeft;
-      indices[idx++] = bottomLeft;
-      indices[idx++] = topRight;
-
-      indices[idx++] = topRight;
-      indices[idx++] = bottomLeft;
-      indices[idx++] = bottomRight;
-    }
   }
 
   tl->numIndices = numIndices;
@@ -363,12 +331,9 @@ void cameraOnMouse(BasicCamera* camera, int x, int y)
     float horRad = ToRadian(camera->AngleH);
     float verRad = ToRadian(camera->AngleV);
 
-    HMM_Vec3 target;
-    target.X = cosf(verRad) * sinf(horRad);
-    target.Y = sinf(verRad);
-    target.Z = cosf(verRad) * cosf(horRad);
-
-    camera->target = target;
+    camera->target.X = cosf(verRad) * sinf(horRad);
+    camera->target.Y = sinf(verRad);
+    camera->target.Z = cosf(verRad) * cosf(horRad);
 }
 
 void cameraOnKeyboard(BasicCamera* camera, int key)
@@ -462,6 +427,6 @@ GLFWwindow* glfw_init(int major_ver, int minor_ver, int width, int height, bool 
 
     // Force V-Sync to prevent frame-rate lighting bugs
     glfwSwapInterval(1);
-    glEnable(GL_FRAMEBUFFER_SRGB);
+    // glEnable(GL_FRAMEBUFFER_SRGB);
     return window;
 }
