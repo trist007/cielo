@@ -4,16 +4,12 @@
 #include <GL/glew.h>
 
 #include "ogldev_glfw.h"
-#include "ogldev_math_3d.h"
 #include "terrain.h"
+#include "HandmadeMath.h"
+#include "math_3d.h"
 
 #define WINDOW_WIDTH  1920.0f
 #define WINDOW_HEIGHT 1080.0f
-
-GLuint g_shaderProg = 0;
-GLuint g_shaderObjList[2];
-int    g_shaderCount = 0;
-GLuint g_VPLoc;
 
 static void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 static void CursorPosCallback(GLFWwindow* window, double x, double y);
@@ -22,9 +18,9 @@ static void MouseButtonCallback(GLFWwindow* window, int Button, int Action, int 
 typedef struct BasicCamera BasicCamera;
 struct BasicCamera
 {
-    Vector3f pos;
-    Vector3f target;
-    Vector3f up;
+    HMM_Vec3 pos;
+    HMM_Vec3 target;
+    HMM_Vec3 up;
 
     float speed;
     int windowWidth;
@@ -38,27 +34,54 @@ struct BasicCamera
     bool OnLeftEdge;
     bool OnRightEdge;
 
-    Vector2i mousePos;
+    HMM_Vec2 mousePos;
     
     PersProjInfo persProjInfo;
-    Matrix4f projection;
+    HMM_Mat4 projection;
 };
 
-Vector3f normalizeFloat3(Vector3f vector) {
-  float length = sqrtf(vector.x*vector.x + vector.y*vector.y + vector.z*vector.z);
+typedef struct GameState GameState;
+struct GameState
+{
+  GLFWwindow* window;
+  BasicCamera* gameCamera;
+  bool isWireframe;
 
-  vector.x = vector.x / length;
-  vector.y = vector.y / length;
-  vector.z = vector.z / length;
+  GLuint shaderProg;
+  char *shaderList;
+  int    shaderCount;
+  GLuint VPLoc;
+  PersProjInfo persProjInfo;
+
+  struct BaseTerrain terrain;
+
+};
+
+GLint getUniformLocation(GameState* gamestate, const char* pUniformName)
+{
+    GLuint Location = glGetUniformLocation(gamestate->shaderProg, pUniformName);
+
+    if (Location == INVALID_UNIFORM_LOCATION) {
+        fprintf(stderr, "Warning! Unable to get the location of uniform '%s'\n", pUniformName);
+    }
+
+    return(Location);
+}
+
+HMM_Vec3 normalizeFloat3(HMM_Vec3 vector)
+{
+  float length = sqrtf(vector.X*vector.X + vector.Y*vector.Y + vector.Z*vector.Z);
+
+  vector.X = vector.X / length;
+  vector.Y = vector.Y / length;
+  vector.Z = vector.Z / length;
 
   return vector;
 }
 
-float ToDegree(float value) {
-  return value = value * (180 / 3.14f);
-}
-
-void initBasicCamera(BasicCamera* gameCamera, persProjInfo pers, Vector3f Pos, Vector3f Target, Vector3f Up) {
+void initBasicCamera(BasicCamera *gameCamera, PersProjInfo pers, HMM_Vec3 Pos,
+                     HMM_Vec3 Target, HMM_Vec3 Up)
+{
   gameCamera->persProjInfo = pers;
   gameCamera->pos = Pos;
   gameCamera->target = normalizeFloat3(Target);
@@ -74,10 +97,11 @@ void initBasicCamera(BasicCamera* gameCamera, persProjInfo pers, Vector3f Pos, V
   gameCamera->OnLowerEdge = false;
   gameCamera->OnLeftEdge  = false;
   gameCamera->OnRightEdge = false;
-  gameCamera->mousePos.x = WINDOW_WIDTH / 2;
-  gameCamera->mousePos.y = WINDOW_HEIGHT / 2;
+  gameCamera->mousePos.X = int(WINDOW_WIDTH / 2);
+  gameCamera->mousePos.Y = int(WINDOW_HEIGHT / 2);
 
-  Matrix4f_InitPersProjTransform(&gameCamera->m_projection, &pers);
+  float aspect = pers.Width / pers.Height;
+  gameCamera->projection = HMM_Perspective_RH_NO(HMM_AngleDeg(pers.FOV), aspect, pers.zNear, pers.zFar);
 }
 
 bool AddShader(char* shaderList, GLenum ShaderType, const char* pFilename)
@@ -104,7 +128,7 @@ bool AddShader(char* shaderList, GLenum ShaderType, const char* pFilename)
   buffer[fileSize] = '\0';
   fclose(file_ptr);
 
-  while (fgets(buffer, sizeof(buffer), file_ptr) != NULL);
+  size_t bytes_read = fread(buffer, 1, fileSize, file_ptr);
 
   GLuint ShaderObj = glCreateShader(ShaderType);
 
@@ -114,7 +138,7 @@ bool AddShader(char* shaderList, GLenum ShaderType, const char* pFilename)
   }
 
   // Save the shader object - will be deleted in the destructor
-  g_shaderObjList[g_shaderCount++] = ShaderObj;
+  shaderObjList[shaderCount++] = ShaderObj;
 
   const GLchar* p[1];
   p[0] = buffer;
@@ -144,7 +168,7 @@ bool AddShader(char* shaderList, GLenum ShaderType, const char* pFilename)
 
 void PassiveMouseCB(int x, int y)
 {
-    m_pGameCamera->OnMouse(x, y);
+    gameCamera->OnMouse(x, y);
 }
 
 void KeyboardCB(uint key, int state)
@@ -160,7 +184,7 @@ void KeyboardCB(uint key, int state)
             exit(0);
 
         case GLFW_KEY_C:
-            m_pGameCamera->Print();
+            gameCamera->Print();
             break;
 
         case GLFW_KEY_W:
@@ -176,18 +200,18 @@ void KeyboardCB(uint key, int state)
         }
     }
 
-    m_pGameCamera->OnKeyboard(key);
+    gameCamera->OnKeyboard(key);
 }
 
 static void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-    app->KeyboardCB(key, action);
+    KeyboardCB(key, action);
 }
 
 
 static void CursorPosCallback(GLFWwindow* window, double x, double y)
 {
-    app->PassiveMouseCB((int)x, (int)y);
+    PassiveMouseCB((int)x, (int)y);
 }
 
 
@@ -197,113 +221,114 @@ static void MouseButtonCallback(GLFWwindow* window, int Button, int Action, int 
 
     glfwGetCursorPos(window, &x, &y);
 
-    app->MouseCB(Button, Action, (int)x, (int)y);
+    MouseCB(Button, Action, (int)x, (int)y);
 }
 
 
 int main(int argc, char** argv)
 {
 
-    GLFWwindow* window = NULL;
-    BasicCamera* m_pGameCamera = NULL;
-    bool m_isWireframe = false;
+  struct GameState* gamestate = (GameState*)malloc(sizeof(GameState));
 
-    BaseTerrain* baseTerrain = (BaseTerrain*)malloc(sizeof(BaseTerrain));
 
-    g_shaderProg = glCreateProgram();
+  BaseTerrain* baseTerrain = (BaseTerrain*)malloc(sizeof(BaseTerrain));
 
-    if (!AddShader(GL_VERTEX_SHADER, "terrain.vs")) {
-        return false;
-    }
+  gamestate->shaderProg = glCreateProgram();
 
-    if (!AddShader(GL_FRAGMENT_SHADER, "terrain.fs")) {
-        return false;
-    }
+  if (!AddShader(gamestate->shaderList, GL_VERTEX_SHADER, "terrain.vs")) {
+      return(0);
+  }
 
-    GLint Success = 0;
-    GLchar ErrorLog[1024] = { 0 };
+  if (!AddShader(gamestate->shaderList, GL_FRAGMENT_SHADER, "terrain.fs")) {
+      return(0);
+  }
 
-    glLinkProgram(g_shaderProg);
+  GLint Success = 0;
+  GLchar ErrorLog[1024] = { 0 };
 
-    glGetProgramiv(g_shaderProg, GL_LINK_STATUS, &Success);
+  glLinkProgram(gamestate->shaderProg);
 
-    if (Success == 0) {
-        glGetProgramInfoLog(g_shaderProg, sizeof(ErrorLog), NULL, ErrorLog);
-        fprintf(stderr, "Error linking shader program: '%s'\n", ErrorLog);
-        return false;
-    }
+  glGetProgramiv(gamestate->shaderProg, GL_LINK_STATUS, &Success);
 
-    glValidateProgram(g_shaderProg);
+  if (Success == 0) {
+      glGetProgramInfoLog(gamestate->shaderProg, sizeof(ErrorLog), NULL, ErrorLog);
+      fprintf(stderr, "Error linking shader program: '%s'\n", ErrorLog);
+      return false;
+  }
 
-    glGetProgramiv(g_shaderProg, GL_VALIDATE_STATUS, &Success);
+  glValidateProgram(gamestate->shaderProg);
 
-    if (Success == 0) {
-        glGetProgramInfoLog(g_shaderProg, sizeof(ErrorLog), NULL, ErrorLog);
-        fprintf(stderr, "Invalid shader program: '%s'\n", ErrorLog);
-        return false;
-    }
+  glGetProgramiv(gamestate->shaderProg, GL_VALIDATE_STATUS, &Success);
 
-    for (int i = 0; i < g_shaderCount; i++)
-      glDeleteShader(g_shaderObjList[i]);
+  if (Success == 0) {
+      glGetProgramInfoLog(gamestate->shaderProg, sizeof(ErrorLog), NULL, ErrorLog);
+      fprintf(stderr, "Invalid shader program: '%s'\n", ErrorLog);
+      return false;
+  }
 
-    g_shaderCount = 0;
+  for (int i = 0; i < gamestate->shaderCount; i++)
+    glDeleteShader(gamestate->shaderList[i]);
 
-    g_VPLoc = GetUniformLocation("gVP");
+  gamestate->shaderCount = 0;
 
-    if (g_VPLoc == INVALID_UNIFORM_LOCATION) {
-        return false;
-    }
+  gamestate->VPLoc = GetUniformLocation("gVP");
 
-    // create window
-    int major_ver = 0;
-    int minor_ver = 0;
-    bool is_full_screen = false;
-    window = glfw_init(major_ver, minor_ver, WINDOW_WIDTH, WINDOW_HEIGHT, is_full_screen, "Terrain Rendering - Demo 1");
+  if (gamestate->VPLoc == INVALID_UNIFORM_LOCATION) {
+      return false;
+  }
 
-    glfwSetCursorPos(window, WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
+  // create window
+  int major_ver = 0;
+  int minor_ver = 0;
+  bool is_full_screen = false;
+  gamestate->window = glfw_init(major_ver, minor_ver, WINDOW_WIDTH, WINDOW_HEIGHT, is_full_screen, "Terrain Rendering - Demo 1");
 
-    // init callbacks
-    glfwSetKeyCallback(window, KeyCallback);
-    glfwSetCursorPosCallback(window, CursorPosCallback);
-    glfwSetMouseButtonCallback(window, MouseButtonCallback);
+  glfwSetCursorPos(gamestate->window, WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
 
-    // camera
-    Vector3f Pos = {100.0f, 220.0f, -400.0f};
-    Vector3f Target = {0.0f, -0.25f, 1.0f};
-    Vector3f Up = {0.0, 1.0f, 0.0f};
+  // init callbacks
+  glfwSetKeyCallback(gamestate->window, KeyCallback);
+  glfwSetCursorPosCallback(gamestate->window, CursorPosCallback);
+  glfwSetMouseButtonCallback(gamestate->window, MouseButtonCallback);
 
-    float FOV = 45.0f;
-    float zNear = 0.1f;
-    float zFar = 2000.0f;
-    PersProjInfo persProjInfo = { FOV, (float)WINDOW_WIDTH, (float)WINDOW_HEIGHT, zNear, zFar };
+  // camera
+  HMM_Vec3 Pos = {100.0f, 220.0f, -400.0f};
+  HMM_Vec3 Target = {0.0f, -0.25f, 1.0f};
+  HMM_Vec3 Up = {0.0, 1.0f, 0.0f};
 
-    BasicCamera* gameCamera = (BasicCamera*)malloc(sizeof(BasicCamera));
-    initBasicCamera(gameCamera, persProjInfo, Pos, Target, Up);
-    
-    // init terrain, init BaseTerrain
-    float WorldScale = 4.0f;
-    m_terrain.InitTerrain(WorldScale);
-    #ifdef _WIN32		
-    m_terrain.LoadFromFile("..\\data\\heightmap.save");
+  float FOV = 45.0f;
+  float zNear = 0.1f;
+  float zFar = 2000.0f;
+  gamestate->persProjInfo = { FOV, (float)WINDOW_WIDTH, (float)WINDOW_HEIGHT, zNear, zFar };
+
+  gamestate->gameCamera = (BasicCamera*)malloc(sizeof(BasicCamera));
+  initBasicCamera(gamestate->gameCamera, gamestate->persProjInfo, Pos, Target, Up);
+
+  // init terrain, init BaseTerrain
+  float WorldScale = 4.0f;
+  gamestate->terrain.worldScale = 4.0f;
+  initTerrain(gamestate->terrain);
+  #ifdef _WIN32		
+  gamestate->terrain = LoadFromFile("..\\data\\heightmap.save");
 #else 
-    m_terrain.LoadFromFile("../data/heightmap.save");
+  m_terrain.LoadFromFile("../data/heightmap.save");
 #endif	
 
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-    glFrontFace(GL_CW);
-    glCullFace(GL_BACK);
-    glEnable(GL_CULL_FACE);
-    glEnable(GL_DEPTH_TEST);
+  glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+  glFrontFace(GL_CW);
+  glCullFace(GL_BACK);
+  glEnable(GL_CULL_FACE);
+  glEnable(GL_DEPTH_TEST);
 
-    while (!glfwWindowShouldClose(window)) {
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        m_terrain.Render(*m_pGameCamera);
-        glfwSwapBuffers(window);
-        glfwPollEvents();
-    }
+  while (!glfwWindowShouldClose(window)) {
+      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+      m_terrain.Render(*m_pGameCamera);
+      glfwSwapBuffers(window);
+      glfwPollEvents();
+  }
 
-    // shutdown
+  // shutdown
 
-    free(baseTerrain);
-    return 0;
+  free(baseTerrain);
+  free(gamestate);
+  return 0;
 }

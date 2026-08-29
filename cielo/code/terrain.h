@@ -14,7 +14,21 @@ struct BaseTerrain
 	TerrainTechnique terrainTech;
 };
 
+typedef struct PersProjInfo PersProjInfo;
+struct PersProjInfo
+{
+    float FOV;
+    float Width;
+    float Height;
+    float zNear;
+    float zFar;
+};
+
+
+
 void initTerrain(float WorldScale);
+void initBasicCamera(BasicCamera *gameCamera, PersProjInfo pers, HMM_Vec3 Pos, HMM_Vec3 Target, HMM_Vec3 Up);
+GLint getUniformLocation(const char* pUniformName);
 
 void Render(const BasicCamera& Camera);
 

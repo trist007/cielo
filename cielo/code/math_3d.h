@@ -1,21 +1,3 @@
-/*
-
-        Copyright 2010 Etay Meiri
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
 #pragma once
 
 #ifdef _WIN64
@@ -42,10 +24,11 @@
 #include <glm/ext.hpp>
 
 // powf wrapper for integer params to avoid crazy casting
+#define PI 3.14
 #define powi(base,exp) (int)powf((float)(base), (float)(exp))
 
-#define ToRadian(x) (float)(((x) * std::numbers::pi / 180.0f))
-#define ToDegree(x) (float)(((x) * 180.0f / std::numbers::pi))
+#define ToRadian(x) (float)(((x) * PI / 180.0f))
+#define ToDegree(x) (float)(((x) * 180.0f / PI ))
 
 static inline float RandomFloat()
 {
@@ -1006,3 +989,4 @@ glm::quat RotationBetweenVectors(glm::vec3& start, glm::vec3& dest);
 #define GLM_PRINT_VEC3(s, v) printf("%s (%f,%f,%f)\n", s, v.x, v.y, v.z)
 #define GLM_PRINT_QUAT(s, q) printf("%s (%f, %f, %f : %f)\n", s, q.x, q.y, q.z, q.w)
 #define GLM_DEFAULT_QUAT glm::quat(1.0f, 0.0f, 0.0f, 0.0f)
+
