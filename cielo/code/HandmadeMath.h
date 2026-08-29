@@ -363,7 +363,7 @@ typedef union HMM_Vec4
 
 #ifdef HANDMADE_MATH__USE_SSE
     __m128 SSE;
-#endi/
+#endif
 
 #ifdef HANDMADE_MATH__USE_NEON
     float32x4_t NEON;
