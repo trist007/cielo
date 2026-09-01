@@ -118,8 +118,13 @@ void triangleListCreate(TriangleList* tl, int width, int depth, BaseTerrain* ter
   glGenVertexArrays(1, &tl->VAO);
   glBindVertexArray(tl->VAO);
 
+  // Vertex Buffer
   glGenBuffers(1, &tl->VB);
   glBindBuffer(GL_ARRAY_BUFFER, tl->VB);
+
+  // Index Buffer
+  glGenBuffers(1, &tl->IB);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, tl->IB);
 
   int POS_LOC = 0;
   glEnableVertexAttribArray(POS_LOC);
@@ -131,9 +136,6 @@ void triangleListCreate(TriangleList* tl, int width, int depth, BaseTerrain* ter
   // PopulateBuffers
   glBufferData(GL_ARRAY_BUFFER, numVertices * sizeof(Vertex), vertices, GL_STATIC_DRAW);
 
-  glGenBuffers(1, &tl->IB);
-
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, tl->IB);
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, numIndices * sizeof(GLuint), indices, GL_STATIC_DRAW);
 
   glBindVertexArray(0);
