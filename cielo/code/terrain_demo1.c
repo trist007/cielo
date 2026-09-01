@@ -224,7 +224,10 @@ int main(int argc, char** argv)
   }
 
   // shutdown
-
+  free(gamestate->terrain.heightMap.data);
+  gamestate->terrain.heightMap.data = NULL;
+  gamestate->terrain.heightMap.rows = 0;
+  gamestate->terrain.heightMap.cols = 0;
   free(gamestate);
   return(0);
 }

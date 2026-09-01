@@ -114,19 +114,27 @@ void triangleListCreate(TriangleList* tl, int width, int depth, BaseTerrain* ter
 
   tl->numIndices = numIndices;
 
+  // CreateGLState
   glGenVertexArrays(1, &tl->VAO);
   glBindVertexArray(tl->VAO);
 
   glGenBuffers(1, &tl->VB);
   glBindBuffer(GL_ARRAY_BUFFER, tl->VB);
+
+  int POS_LOC = 0;
+  glEnableVertexAttribArray(POS_LOC);
+
+  size_t numFloats = 0;
+  glVertexAttribPointer(POS_LOC, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void*)(numFloats * sizeof(float)));
+  numFloats += 3;
+
+  // PopulateBuffers
   glBufferData(GL_ARRAY_BUFFER, numVertices * sizeof(Vertex), vertices, GL_STATIC_DRAW);
 
   glGenBuffers(1, &tl->IB);
+
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, tl->IB);
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, numIndices * sizeof(GLuint), indices, GL_STATIC_DRAW);
-
-  glEnableVertexAttribArray(0);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
 
   glBindVertexArray(0);
 
@@ -188,7 +196,7 @@ char* readBinaryFile(const char* file, int* size)
 {
   FILE* file_ptr = fopen(file, "rb");
   if (!file_ptr) {
-    fprintf(stderr, "unable to open file ''%s': %s\n", file, strerror(errno));
+    fprintf(stderr, "unable to open file '%s': %s\n", file, strerror(errno));
     return(NULL);
   }
 
@@ -203,11 +211,17 @@ char* readBinaryFile(const char* file, int* size)
   *size = (int)stat_buf.st_size;
 
   char* p = (char*)malloc(*size);
-  assert(p);
+  if (!p) {
+      fprintf(stderr, "out of memory allocating %d bytes for '%s'\n", *size, file);
+      fclose(file_ptr);
+      return(NULL);
+  }
 
   size_t bytes_read = fread(p, 1, *size, file_ptr);
   if ((int)bytes_read != *size) {
     fprintf(stderr, "read file error for '%s': %s\n", file, strerror(errno));
+    free(p);
+    fclose(file_ptr);
     return(NULL);
   }
 
