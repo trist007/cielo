@@ -5,6 +5,7 @@
 #include <GLFW/glfw3.h>
 #include <stdbool.h>
 #include "HandmadeMath.h"
+#include "array2df.h"
 
 #define WINDOW_WIDTH  1920
 #define WINDOW_HEIGHT 1080
@@ -21,28 +22,39 @@ typedef struct Vertex {
     GLfloat x, y, z;
 } Vertex;
 
-typedef struct Array2Df Array2Df;
-struct Array2Df {
-  int    rows;
-  int    cols;
-  float* data;
-};
-
-static inline float Array2D_Get(const Array2Df* a, int x, int z)
+typedef struct TriangleList TriangleList;
+struct TriangleList
 {
-    return a->data[z * a->cols + x];
-}
-
-typedef struct TriangleList {
-    /* VAO/VBO/index-buffer handles, vertex/index counts, etc. */
+  /* VAO/VBO/index-buffer handles, vertex/index counts, etc. */
   GLuint VAO;
   GLuint VB;
   GLuint IB;
   int    numIndices;
-} TriangleList;
+};
 
 typedef struct BaseTerrain BaseTerrain;
 struct BaseTerrain
+{
+  GLuint       shaderProg;
+  GLuint       minHeightLoc;
+  GLuint       maxHeightLoc;
+  GLint        VPLoc;
+  float        worldScale;
+
+  int          terrainSize;
+  Array2Df     heightMap;
+  TriangleList triangleList;
+};
+
+typedef struct TerrainPoint TerrainPoint;
+struct TerrainPoint
+{
+  int x;
+  int z;
+};
+
+typedef struct FaultFormationTerrain FaultFormationTerrain;
+struct FaultFormationTerrain
 {
   GLuint       shaderProg;
   GLint        VPLoc;
@@ -51,6 +63,8 @@ struct BaseTerrain
   int          terrainSize;
   Array2Df     heightMap;
   TriangleList triangleList;
+
+  TerrainPoint terrainPoint;
 };
 
 typedef struct PersProjInfo PersProjInfo;
@@ -111,10 +125,18 @@ void  terrainLoadHeightMapFile(BaseTerrain* terrain, const char* pFilename);
 void  terrainLoadFromFile(BaseTerrain* terrain, const char* pFilename);
 void  renderScene(BaseTerrain* terrain, const BasicCamera* camera);
 
+void createFaultFormationInternal(Array2Df* heightMap, int terrainSize, int interations, float minHeight, float maxHeight, float filter);
+void createFaultFormation(struct BaseTerrain* terrain, int terrainSize, int interations, float minHeight, float maxHeight, float filter);
+void generateRandomTerrainPoints(int terrainSize, struct TerrainPoint* p1, struct TerrainPoint* p2);
+int  areTerrainPointsEqual(struct TerrainPoint* p1, struct TerrainPoint* p2);
+
 void     triangleListCreate(TriangleList* tl, int width, int depth, BaseTerrain* terrain);
 void     triangleListRender(TriangleList* tl);
 void     triangleListDestroy(TriangleList* tl);
 HMM_Mat4 Camera_GetViewProjMatrix(const BasicCamera* camera);
+float    FIRFilterSinglePoint(Array2Df* heightMap, int x, int z, float prevVal, float filter);
+void     applyFIRFilter(Array2Df* heightMap, int terrainSize, float filter);
+
 
 void cameraPrint(BasicCamera* camera);
 void cameraOnMouse(BasicCamera* camera, int x, int y);

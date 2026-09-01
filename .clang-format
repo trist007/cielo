@@ -1,0 +1,10 @@
+DisableFormat: false
+SortIncludes: Never
+BasedOnStyle: LLVM
+IndentWidth: 2
+TabWidth: 2
+UseTab: Never
+IndentCaseLabels: true
+ColumnLimit: 100
+SpaceBeforeParens: ControlStatements
+Standard: C17

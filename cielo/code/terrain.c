@@ -5,12 +5,13 @@
 #include <math.h>
 #include <stdbool.h>
 #include <assert.h>
-#include <sys/stat.h  >
+#include <sys/stat.h>
 #include <sys/types.h>
 
 #include <GL/glew.h>
 
 #include "terrain.h"
+#include "array2df.h"
 
 void terrainLoadHeightMapFile(BaseTerrain* terrain, const char* pFilename)
 {
@@ -86,7 +87,7 @@ void triangleListCreate(TriangleList* tl, int width, int depth, BaseTerrain* ter
     for (int x = 0; x < width; x++) {
       Vertex* v = &vertices[index++];
       v->x = (float)x * terrain->worldScale;
-      v->y = Array2D_Get(&terrain->heightMap, x, z);
+      v->y = array2Df_get(&terrain->heightMap, x, z);
       v->z = (float)z * terrain->worldScale;
     }
   }
@@ -250,9 +251,9 @@ void writeBinaryFile(const char* file, const void* data, int size)
 
 GLint getUniformLocation(GameState* gamestate, const char* pUniformName)
 {
-  GLuint Location = glGetUniformLocation(gamestate->shaderProg, pUniformName);
+  GLint Location = glGetUniformLocation(gamestate->shaderProg, pUniformName);
 
-  if (Location == INVALID_UNIFORM_LOCATION) {
+  if (Location == -1) {
     fprintf(stderr, "Warning! Unable to get the location of uniform '%s'\n", pUniformName);
   }
 
@@ -455,3 +456,132 @@ GLFWwindow* glfw_init(int major_ver, int minor_ver, int width, int height, bool 
     // glEnable(GL_FRAMEBUFFER_SRGB);
     return window;
 }
+
+int
+areTerrainPointsEqual(struct TerrainPoint* p1, struct TerrainPoint* p2)
+{
+  if (p1->x == p2->x && p1->z == p2->z)
+    return(1);
+  else
+    return(0);
+}
+
+void
+generateRandomTerrainPoints(int terrainSize, struct TerrainPoint* p1, struct TerrainPoint* p2)
+{
+  p1->x = rand() % terrainSize;
+  p1->z = rand() % terrainSize;
+  
+  int counter = 0;
+
+  do {
+    p2->x = rand() % terrainSize;
+    p2->z = rand() % terrainSize;
+    
+    if (counter++ == 1000)
+    {
+      printf("Endless loop detected in %s: %d\n", __FILE__, __LINE__);
+      assert(0);
+    }
+  } while (areTerrainPointsEqual(p1, p2));
+}
+
+float FIRFilterSinglePoint(Array2Df* heightMap, int x, int z, float prevVal, float filter)
+{
+    float curVal = array2Df_get(heightMap, x, z);
+    float newVal = filter * prevVal + (1 - filter) * curVal;
+    array2Df_set(heightMap, x, z, newVal);
+    return newVal;
+}
+
+void applyFIRFilter(Array2Df* heightMap, int terrainSize, float filter)
+{
+    // left to right
+    for (int z = 0; z < terrainSize; z++) {
+        float prevVal = array2Df_get(heightMap, 0, z);
+        for (int x = 1; x < terrainSize; x++) {
+            prevVal = FIRFilterSinglePoint(heightMap, x, z, prevVal, filter);
+        }
+    }
+
+    // right to left
+    for (int z = 0; z < terrainSize; z++) {
+        float prevVal = array2Df_get(heightMap, terrainSize - 1, z);
+        for (int x = terrainSize - 2; x >= 0; x--) {
+            prevVal = FIRFilterSinglePoint(heightMap, x, z, prevVal, filter);
+        }
+    }
+
+    // bottom to top
+    for (int x = 0; x < terrainSize; x++) {
+        float prevVal = array2Df_get(heightMap, x, 0);
+        for (int z = 1; z < terrainSize; z++) {
+            prevVal = FIRFilterSinglePoint(heightMap, x, z, prevVal, filter);
+        }
+    }
+
+    // top to bottom
+    for (int x = 0; x < terrainSize; x++) {
+        float prevVal = array2Df_get(heightMap, x, terrainSize - 1);
+        for (int z = terrainSize - 2; z >= 0; z--) {
+            prevVal = FIRFilterSinglePoint(heightMap, x, z, prevVal, filter);
+        }
+    }
+}
+
+void
+createFaultFormationInternal(Array2Df* heightMap, int terrainSize, int iterations, float minHeight, float maxHeight, float filter)
+{
+  float deltaHeight = maxHeight - minHeight;
+  
+  for (int currentIteration = 0; currentIteration < iterations; currentIteration++)
+  {
+    float iterationRatio = ((float)currentIteration / (float) iterations);
+    float height         = maxHeight - iterationRatio * deltaHeight;
+
+    struct TerrainPoint p1, p2;
+    
+    generateRandomTerrainPoints(terrainSize, &p1, &p2);
+    
+    int dirX = p2.x - p1.x;
+    int dirZ = p2.z - p1.z;
+    
+    for (int z = 0; z < terrainSize; z++)
+    {
+      for (int x = 0; x < terrainSize; x++)
+      {
+        int dirX_in = x - p1.x;
+        int dirZ_in = z - p1.z;
+        
+        int crossProduct = dirX_in * dirZ - dirX * dirZ_in;
+        
+        if (crossProduct > 0)
+        {
+          float currentHeight = array2Df_get(heightMap, x, z);
+          array2Df_set(heightMap, x, z, currentHeight + height);
+        }
+      }
+    }
+  }
+  
+  // applyFIRFilter(heightMap, terrainSize, filter);
+}
+
+void
+createFaultFormation(struct BaseTerrain* terrain, int terrainSize, int iterations, float minHeight, float maxHeight, float filter)
+{
+  terrain->terrainSize = terrainSize;
+  
+  glUseProgram(terrain->shaderProg);
+  glUniform1f(terrain->minHeightLoc, minHeight);
+  glUniform1f(terrain->maxHeightLoc, maxHeight);
+  
+  array2Df_initFill(&terrain->heightMap, terrainSize, terrainSize, 0.0f);
+
+  createFaultFormationInternal(&terrain->heightMap, terrainSize, iterations, minHeight, maxHeight, filter);
+  
+  array2Df_normalize(&terrain->heightMap, minHeight, maxHeight);
+  
+  triangleListCreate(&terrain->triangleList, terrainSize, terrainSize, terrain);
+}
+

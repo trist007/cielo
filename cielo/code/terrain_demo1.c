@@ -118,7 +118,7 @@ int main(int argc, char** argv)
 
   (void)argc; (void)argv;
 
-  struct GameState* gamestate = (GameState*)malloc(sizeof(GameState));
+  struct GameState* gamestate = (GameState*)calloc(1, sizeof(GameState));
   if (!gamestate) {
     fprintf(stderr, "unable to allocate memory for gamestate\n");
     return(1);
@@ -179,7 +179,7 @@ int main(int argc, char** argv)
     free(gamestate);
     return(1);
   }
-
+  
   gamestate->terrain.shaderProg = gamestate->shaderProg;
   gamestate->terrain.VPLoc      = gamestate->VPLoc;
 
@@ -207,9 +207,17 @@ int main(int argc, char** argv)
   initBasicCamera(&gamestate->gameCamera, gamestate->persProjInfo, Pos, Target, Up);
 
   // init terrain, init BaseTerrain
-  float WorldScale = 4.0f;
-  gamestate->terrain.worldScale = 4.0f;
-  terrainLoadFromFile(&gamestate->terrain, "..\\data\\heightmap.save");
+  // terrainLoadFromFile(&gamestate->terrain, "..\\data\\heightmap.save");
+  int size = 256;
+  int iterations = 500;
+  float minHeight = 0.0f;
+  float maxHeight = 300.0f;
+  float filter = 0.5f;
+
+  gamestate->terrain.minHeightLoc = getUniformLocation(gamestate, "gMinHeight");
+  gamestate->terrain.maxHeightLoc = getUniformLocation(gamestate, "gMaxHeight");
+
+  createFaultFormation(&gamestate->terrain, size, iterations, minHeight, maxHeight, filter);
 
   glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
   glFrontFace(GL_CCW);
