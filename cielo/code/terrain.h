@@ -105,15 +105,15 @@ struct GameState
     struct BaseTerrain terrain;
 };
 
-void initBasicCamera(BasicCamera *gameCamera, PersProjInfo pers, HMM_Vec3 Pos, HMM_Vec3 Target, HMM_Vec3 Up);
+void  initBasicCamera(BasicCamera *gameCamera, PersProjInfo pers, HMM_Vec3 Pos, HMM_Vec3 Target, HMM_Vec3 Up);
 GLint getUniformLocation(GameState* gamestate, const char* pUniformName);
-void terrainLoadHeightMapFile(BaseTerrain* terrain, const char* pFilename);
-void terrainLoadFromFile(BaseTerrain* terrain, const char* pFilename);
-void terrainRender(BaseTerrain* terrain, const BasicCamera* camera);
+void  terrainLoadHeightMapFile(BaseTerrain* terrain, const char* pFilename);
+void  terrainLoadFromFile(BaseTerrain* terrain, const char* pFilename);
+void  renderScene(BaseTerrain* terrain, const BasicCamera* camera);
 
-void triangleListCreate(TriangleList* tl, int width, int depth, BaseTerrain* terrain);
-void triangleListRender(TriangleList* tl);
-void triangleListDestroy(TriangleList* tl);
+void     triangleListCreate(TriangleList* tl, int width, int depth, BaseTerrain* terrain);
+void     triangleListRender(TriangleList* tl);
+void     triangleListDestroy(TriangleList* tl);
 HMM_Mat4 Camera_GetViewProjMatrix(const BasicCamera* camera);
 
 void cameraPrint(BasicCamera* camera);
@@ -123,7 +123,7 @@ void cameraOnKeyboard(BasicCamera* camera, int key);
 char* readFile(const char* file, int* size);
 void  writeBinaryFile(const char* pFilename, const void* pData, int size);
 char* readBinaryFile(const char* file, int* size);
-bool AddShader(GameState* gamestate, GLenum ShaderType, const char* pFilename);
+bool  AddShader(GameState* gamestate, GLenum ShaderType, const char* pFilename);
 
 GLFWwindow* glfw_init(int major_ver, int minor_ver, int width, int height, bool is_full_screen, const char* title);
 #endif // TERRAIN_H

@@ -55,8 +55,10 @@ HMM_Mat4 Camera_GetViewProjMatrix(const BasicCamera* camera)
   return HMM_MulM4(camera->projection, view);
 }
 
-void terrainRender(BaseTerrain* terrain, const BasicCamera* camera)
+void renderScene(BaseTerrain* terrain, const BasicCamera* camera)
 {
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
   HMM_Mat4 VP = Camera_GetViewProjMatrix(camera);
 
   glUseProgram(terrain->shaderProg);
@@ -98,10 +100,12 @@ void triangleListCreate(TriangleList* tl, int width, int depth, BaseTerrain* ter
           GLuint indexTopRight    = (GLuint)((z + 1) * width + x + 1);
           GLuint indexBottomRight = (GLuint)(z * width + x + 1);
 
+          // top left tri
           indices[idx++] = indexBottomLeft;
           indices[idx++] = indexTopLeft;
           indices[idx++] = indexTopRight;
 
+          // bottom right tri
           indices[idx++] = indexBottomLeft;
           indices[idx++] = indexTopRight;
           indices[idx++] = indexBottomRight;
@@ -133,7 +137,12 @@ void triangleListCreate(TriangleList* tl, int width, int depth, BaseTerrain* ter
 void triangleListRender(TriangleList* tl)
 {
   glBindVertexArray(tl->VAO);
+
+  // NOTE(trist007): this is in Terrain1 both have GLSizei count of 393216 numIndices
+	// glDrawElements(GL_TRIANGLES, (m_depth - 1) * (m_width - 1) * 6, GL_UNSIGNED_INT, NULL);
+
   glDrawElements(GL_TRIANGLES, tl->numIndices, GL_UNSIGNED_INT, NULL);
+
   glBindVertexArray(0);
 }
 
