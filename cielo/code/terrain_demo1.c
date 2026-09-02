@@ -206,6 +206,9 @@ int main(int argc, char** argv)
 
   initBasicCamera(&gamestate->gameCamera, gamestate->persProjInfo, Pos, Target, Up);
 
+  float WorldScale = 4.0f;
+  gamestate->terrain.worldScale = 4.0f;
+
   // init terrain, init BaseTerrain
   // terrainLoadFromFile(&gamestate->terrain, "..\\data\\heightmap.save");
   int size = 256;

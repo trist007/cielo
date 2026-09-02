@@ -564,7 +564,7 @@ createFaultFormationInternal(Array2Df* heightMap, int terrainSize, int iteration
     }
   }
   
-  // applyFIRFilter(heightMap, terrainSize, filter);
+  applyFIRFilter(heightMap, terrainSize, filter);
 }
 
 void
@@ -579,6 +579,11 @@ createFaultFormation(struct BaseTerrain* terrain, int terrainSize, int iteration
   array2Df_initFill(&terrain->heightMap, terrainSize, terrainSize, 0.0f);
 
   createFaultFormationInternal(&terrain->heightMap, terrainSize, iterations, minHeight, maxHeight, filter);
+  
+  float actualMin, actualMax;
+  array2Df_getMinMax(&terrain->heightMap, &actualMin, &actualMax);
+  
+  printf("array2Df_getMinMax: min - %f, max - %f\n", actualMin, actualMax);
   
   array2Df_normalize(&terrain->heightMap, minHeight, maxHeight);
   

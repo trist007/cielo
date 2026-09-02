@@ -17,4 +17,5 @@
                   (start-process "raddbg" nil "raddbg.exe"
                                  (expand-file-name "terrain.exe" default-directory))))
               map))
-  (my-terrain-project-mode 1))))))
+  ;(my-terrain-project-mode 1))))))
+  (run-with-idle-timer 0 nil #'my-terrain-project-mode 1))))))
