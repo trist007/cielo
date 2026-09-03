@@ -18,12 +18,9 @@ set CommonCompilerFlags=/utf-8 /std:c17 /Zc:__STDC__ /EHsc ^
     /IC:\vcpkg\vcpkg-2026.07.29\installed\x64-windows\include ^
     %INCLUDES% 
 
-REM    assimp-vc143-mt.lib glfw3dll.lib meshoptimizer.lib freeglut.lib opengl32.lib user32.lib
-REM    /DFREEGLUT_LIB_PRAGMAS=0 ^
-
 set LDFLAGS=/LIBPATH:C:\vcpkg\vcpkg-2026.07.29\installed\x64-windows\lib ^
     /LIBPATH:..\Lib ^
-    assimp-vc143-mt.lib glfw3dll.lib meshoptimizer.lib opengl32.lib user32.lib
+    glfw3dll.lib meshoptimizer.lib opengl32.lib user32.lib
 
 
 REM ── MAIN EXE ──────────────────────────────────────────────────────────────
