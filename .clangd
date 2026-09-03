@@ -2,6 +2,8 @@ CompileFlags:
   Compiler: cl
   Add:
     - /IC:\dev\cielo\cielo\code
+    - /IC:\dev\cielo\cielo\code\glad
+    - /IC:\dev\cielo\cielo\code\KHR
     - /IC:\dev\cielo\cielo\code\assimp5
 
 ---

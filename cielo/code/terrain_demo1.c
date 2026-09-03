@@ -4,16 +4,18 @@
 #include <string.h>
 #include <math.h>
 
-#include <GL/glew.h>
-#define GLFW_DLL
-#include <GLFW/glfw3.h>
-
 #include "terrain.h"
 #include "HandmadeMath.h"
 
 static void KeyCallback         (GLFWwindow* window, int key,   int scancode, int action, int mods);
 static void CursorPosCallback   (GLFWwindow* window, double x,  double y);
 static void MouseButtonCallback (GLFWwindow* window, int Button, int Action, int Mode);
+
+static void
+processInput(GLFWwindow* window)
+{
+  if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) glfwSetWindowShouldClose(window, true);
+}
 
 static HMM_Vec3 normalizeFloat3(HMM_Vec3 vector)
 {

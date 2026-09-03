@@ -1,7 +1,9 @@
 #ifndef TERRAIN_H
 #define TERRAIN_H
 
-#include <GL/glew.h>
+#include <glad/gl.h>
+
+#define GLFW_DLL
 #include <GLFW/glfw3.h>
 #include <stdbool.h>
 #include "HandmadeMath.h"

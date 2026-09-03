@@ -8,8 +8,6 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#include <GL/glew.h>
-
 #include "terrain.h"
 #include "array2df.h"
 
@@ -123,6 +121,8 @@ void triangleListCreate(TriangleList* tl, int width, int depth, BaseTerrain* ter
   glGenBuffers(1, &tl->VB);
   glBindBuffer(GL_ARRAY_BUFFER, tl->VB);
 
+  // NOTE(trist007): because tl->VAO is active you must not unbind the index buffer before
+  // unbinding the VAO or the VAO will lose track of your index buffer
   // Index Buffer
   glGenBuffers(1, &tl->IB);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, tl->IB);
@@ -139,6 +139,7 @@ void triangleListCreate(TriangleList* tl, int width, int depth, BaseTerrain* ter
 
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, numIndices * sizeof(GLuint), indices, GL_STATIC_DRAW);
 
+  // NOTE(trist007): this unbinds the VAO, vertex array object
   glBindVertexArray(0);
 
   free(vertices);
@@ -301,7 +302,9 @@ bool AddShader(GameState* gamestate, GLenum ShaderType, const char* pFilename)
   const GLchar* p[1] = { buffer };
   GLint Lengths[1] = { (GLint)bytes_read };
 
-  glShaderSource(ShaderObj, 1, p, Lengths);
+  // NOTE(trist007): don't use Lengths put NULL to tell openGL
+  // shader string is NULL terminated C string
+  glShaderSource(ShaderObj, 1, p, NULL);
 
   glCompileShader(ShaderObj);
 
@@ -417,19 +420,14 @@ GLFWwindow* glfw_init(int major_ver, int minor_ver, int width, int height, bool 
     GLFWwindow* window = NULL;
 
     // Ported fallback logic from C++
-    if (major_ver == 0 && minor_ver == 0) {
-        int versions[3][2] = { {4,6}, {4,3}, {3,3} };
-
-        for (int i = 0; i < 3; i++) {
-            glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, versions[i][0]);
-            glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, versions[i][1]);
-            window = glfwCreateWindow(width, height, title, monitor, NULL);
-
-            if (window) {
-                break; // Successfully created a context
-            }
-        }
-    } else {
+    if (major_ver == 0 && minor_ver == 0)
+    {
+      glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+      glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+      window = glfwCreateWindow(width, height, title, monitor, NULL);
+    }
+    else
+    {
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, major_ver);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, minor_ver);
         window = glfwCreateWindow(width, height, title, monitor, NULL);
@@ -443,11 +441,11 @@ GLFWwindow* glfw_init(int major_ver, int minor_ver, int width, int height, bool 
 
     glfwMakeContextCurrent(window);
 
-    // Initialize GLEW
-    glewExperimental = GL_TRUE;
-    GLenum err = glewInit();
-    if (err != GLEW_OK) {
-        fprintf(stderr, "Failed to initialize GLEW: %s\n", glewGetErrorString(err));
+    //  ADD NEW GLAD 2 INITIALIZATION BLOCK
+    int gl_version = gladLoadGL(glfwGetProcAddress);
+    if (gl_version == 0) {
+        fprintf(stderr, "Failed to initialize GLAD\n");
+        glfwTerminate();
         exit(1);
     }
 
@@ -589,4 +587,3 @@ createFaultFormation(struct BaseTerrain* terrain, int terrainSize, int iteration
   
   triangleListCreate(&terrain->triangleList, terrainSize, terrainSize, terrain);
 }
-
