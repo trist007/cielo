@@ -5,7 +5,7 @@ CompileFlags:
     - /IC:\dev\cielo\cielo\code\glad
     - /IC:\dev\cielo\cielo\code\KHR
     - /IC:\dev\cielo\cielo\code\assimp5
-
+  Remove: [-x]
 ---
 
 If:
@@ -16,6 +16,6 @@ CompileFlags:
 ---
 
 If:
-  PathMatch: .*\.(cpp|cc|cxx|hpp|h)$
+  PathMatch: .*\.(cpp|cc|cxx|hpp)$
 CompileFlags:
   Add: /TP
