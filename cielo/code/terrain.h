@@ -69,6 +69,20 @@ struct FaultFormationTerrain
   TerrainPoint terrainPoint;
 };
 
+typedef struct MidpointDisplacementTerrain MidpointDisplacementTerrain;
+struct MidpointDisplacementTerrain
+{
+  GLuint       shaderProg;
+  GLint        VPLoc;
+  float        worldScale;
+
+  int          terrainSize;
+  Array2Df     heightMap;
+  TriangleList triangleList;
+
+  TerrainPoint terrainPoint;
+};
+
 typedef struct PersProjInfo PersProjInfo;
 struct PersProjInfo
 {
@@ -132,6 +146,12 @@ void createFaultFormation(struct BaseTerrain* terrain, int terrainSize, int inte
 void generateRandomTerrainPoints(int terrainSize, struct TerrainPoint* p1, struct TerrainPoint* p2);
 int  areTerrainPointsEqual(struct TerrainPoint* p1, struct TerrainPoint* p2);
 
+void  createMidpointDisplacementF32(struct BaseTerrain* terrain, int terrainSize, float roughness);
+void  createMidpointDisplacement(struct BaseTerrain* terrain, int terrainSize, float roughness, float minHeight, float maxHeight);
+float randomFloatRange(float min, float max);
+int   calcNextPowerOfTwo(int value);
+int   isValuePowerOfTwo(int n);
+
 void     triangleListCreate(TriangleList* tl, int width, int depth, BaseTerrain* terrain);
 void     triangleListRender(TriangleList* tl);
 void     triangleListDestroy(TriangleList* tl);
@@ -148,6 +168,9 @@ char* readFile(const char* file, int* size);
 void  writeBinaryFile(const char* pFilename, const void* pData, int size);
 char* readBinaryFile(const char* file, int* size);
 bool  AddShader(GameState* gamestate, GLenum ShaderType, const char* pFilename);
+
+void diamondStep(int terrainSize, Array2Df* heightMap, int rectSize, float currentHeight);
+void squareStep(int terrainSize, Array2Df* heightMap, int rectSize, float currentHeight);
 
 GLFWwindow* glfw_init(int major_ver, int minor_ver, int width, int height, bool is_full_screen, const char* title);
 #endif // TERRAIN_H

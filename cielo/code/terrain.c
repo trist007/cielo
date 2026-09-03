@@ -587,3 +587,143 @@ createFaultFormation(struct BaseTerrain* terrain, int terrainSize, int iteration
   
   triangleListCreate(&terrain->triangleList, terrainSize, terrainSize, terrain);
 }
+
+
+void
+createMidpointDisplacement(struct BaseTerrain* terrain, int terrainSize, float roughness, float minHeight, float maxHeight)
+{
+ if (roughness < 0.0f)
+ {
+  fprintf(stderr, "%s: roughness must be positive - %f\n", __FUNCTION__, roughness);
+  exit(0);
+ }
+ 
+ terrain->terrainSize = terrainSize;
+
+ glUseProgram(terrain->shaderProg);
+ glUniform1f(terrain->minHeightLoc, minHeight);
+ glUniform1f(terrain->maxHeightLoc, maxHeight);
+
+ array2Df_initFill(&terrain->heightMap, terrainSize, terrainSize, 0.0f);
+ createMidpointDisplacementF32(terrain, terrainSize, roughness);
+
+ float actualMin, actualMax;
+ array2Df_getMinMax(&terrain->heightMap, &actualMin, &actualMax);
+
+ array2Df_normalize(&terrain->heightMap, minHeight, maxHeight);
+ triangleListCreate(&terrain->triangleList, terrainSize, terrainSize, terrain);
+}
+
+void
+createMidpointDisplacementF32(struct BaseTerrain* terrain, int terrainSize, float roughness)
+{
+  int rectSize = terrain->terrainSize;
+  float currentHeight = (float)rectSize / 2.0f;
+  float heightReduce = pow(2.0f, -roughness);
+  
+  while (rectSize > 0)
+  {
+    diamondStep(terrain->terrainSize, &terrain->heightMap, rectSize, currentHeight);
+    squareStep(terrain->terrainSize, &terrain->heightMap, rectSize, currentHeight);
+    
+    rectSize /= 2;
+    currentHeight *= heightReduce;
+  }
+}
+
+void
+diamondStep(int terrainSize, Array2Df* heightMap, int rectSize, float currentHeight)
+{
+  int halfRectSize = rectSize / 2;
+
+  for (int y = 0; y < terrainSize; y += rectSize)
+  {
+    for (int x = 0; x < terrainSize; x += rectSize)
+    {
+      int nextX = (x + rectSize) % terrainSize;
+      int nextY = (y + rectSize) % terrainSize;
+      
+      float topLeft     = array2Df_get(heightMap, x, y);
+      float topRight    = array2Df_get(heightMap, nextX, y);
+      float bottomLeft  = array2Df_get(heightMap, x, nextY);
+      float bottomRight = array2Df_get(heightMap, nextX, nextY);
+      
+      int midX = x + halfRectSize;
+      int midY = y + halfRectSize;
+      
+      float randValue = randomFloatRange(currentHeight, -currentHeight);
+      float midPoint = (topLeft + topRight + bottomLeft + bottomRight) / 4.0f;
+
+      array2Df_set(heightMap, midX, midY, midPoint + randValue);
+    }
+  }
+}
+
+void
+squareStep(int terrainSize, Array2Df* heightMap, int rectSize, float currentHeight)
+{
+ int halfRectSize = rectSize / 2;
+
+ for (int y = 0; y < terrainSize; y += rectSize)
+ {
+  for (int x = 0; x < terrainSize; x += rectSize)
+  {
+   int nextX = (x + rectSize) % terrainSize;
+   int nextY = (y + rectSize) % terrainSize;
+      
+   int midX = x + halfRectSize;
+   int midY = y + halfRectSize;
+
+   int prevMidX = (x - halfRectSize + terrainSize) % terrainSize;
+   int prevMidY = (y - halfRectSize + terrainSize) % terrainSize;
+      
+   float currentTopLeft    = array2Df_get(heightMap, x, y);
+   float currentTopRight   = array2Df_get(heightMap, nextX, y);
+   float currentCenter     = array2Df_get(heightMap, midX, midY);
+   float previousYCenter   = array2Df_get(heightMap, midX, prevMidY);
+   float currentBottomLeft = array2Df_get(heightMap, x, nextY);
+   float previousXCenter   = array2Df_get(heightMap, prevMidX, midY);
+
+   float currentLeftMid = (currentTopLeft + currentCenter + currentBottomLeft + previousXCenter) / 4.0f + randomFloatRange(-currentHeight, currentHeight);
+   float currentTopMid = (currentTopLeft + currentCenter + currentTopRight + previousYCenter) / 4.0f + randomFloatRange(-currentHeight, currentHeight);
+   
+   array2Df_set(heightMap, midX, y, currentTopMid);
+   array2Df_set(heightMap, x, midY, currentLeftMid);
+  }
+ }
+}
+
+float randomFloatRange(float min, float max)
+{
+ float result = 0.0f;
+
+ float scale = (float)rand() / (float)RAND_MAX;
+ 
+ result = min + scale * (max - min);
+ 
+ return(result);
+}
+
+int
+isValuePowerOfTwo(int n)
+{
+ if ((n & (n - 1)) == 0)
+  return 1;
+ else
+  return 0;
+}
+
+int
+calcNextPowerOfTwo(int value)
+{
+ if (value == 0) return 0;
+ if (value < 0) return 0;
+
+ int result = value;
+ while (!isValuePowerOfTwo(result))
+ {
+  result++;
+ }
+ return (result);
+}
+

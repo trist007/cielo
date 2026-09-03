@@ -27,7 +27,7 @@ static inline size_t array2Df_calcIndex(const Array2Df* a, int col, int row)
 }
 
 /* equivalent to InitArray2D(Cols, Rows) */
-static inline void array2Df_init(Array2Df* a, int cols, int rows)
+inline void array2Df_init(Array2Df* a, int cols, int rows)
 {
     a->cols = cols;
     a->rows = rows;
@@ -93,7 +93,7 @@ static inline int array2Df_getSizeInBytes(const Array2Df* a)
 }
 
 /* Get(Col, Row) */
-static inline float array2Df_get(const Array2Df* a, int col, int row)
+inline float array2Df_get(const Array2Df* a, int col, int row)
 {
     return *array2Df_getAddr(a, col, row);
 }
@@ -151,7 +151,7 @@ static inline void array2Df_getMinMax(const Array2Df* a, float* min, float* max)
     }
 }
 
-static inline void array2Df_normalize(Array2Df* a, float minRange, float maxRange)
+inline void array2Df_normalize(Array2Df* a, float minRange, float maxRange)
 {
     float min, max;
 
