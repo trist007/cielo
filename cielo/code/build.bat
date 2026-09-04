@@ -20,13 +20,14 @@ set CommonCompilerFlags=/utf-8 /std:c17 /Zc:__STDC__ /EHsc ^
 
 set LDFLAGS=/LIBPATH:C:\vcpkg\vcpkg-2026.07.29\installed\x64-windows\lib ^
     /LIBPATH:..\Lib ^
-    glfw3dll.lib meshoptimizer.lib opengl32.lib user32.lib
+    meshoptimizer.lib opengl32.lib user32.lib gdi32.lib
 
 
 REM ── MAIN EXE ──────────────────────────────────────────────────────────────
-    echo [MAIN] Compiling terrain with glfw and opengl...
+    echo [MAIN] Compiling terrain with opengl...
     cl /c %CommonCompilerFlags% ^
         .\gl.c ^
+        .\platform.c ^
         .\terrain_demo1.c ^
         .\terrain.c
     if %errorlevel% neq 0 ( echo [MAIN] compile failed & goto end )
@@ -35,11 +36,11 @@ REM ── MAIN EXE ────────────────────
     link /INCREMENTAL:NO /OPT:REF /DEBUG ^
         /PDB:terrain.pdb ^
         /out:terrain.exe ^
-        gl.obj terrain_demo1.obj terrain.obj ^
+        gl.obj platform.obj terrain_demo1.obj terrain.obj ^
         %LDFLAGS%
     if %errorlevel% neq 0 ( echo [MAIN] link failed & goto end )
 
-    echo [MAIN] terrain.exe built with OpenGL, GLAD, and GLFW. 
+    echo [MAIN] terrain.exe built with OpenGL. 
 )
 
 :end

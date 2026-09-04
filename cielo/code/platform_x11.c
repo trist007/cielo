@@ -258,3 +258,18 @@ int platform_get_key(PlatformWindow* window, int key)
   
   return window->keys[key] ? KEY_PRESSED : KEY_RELEASED;
 }
+
+bool platform_key_down(PlatformWindow* w, int key)
+{
+    return w->keys[key];
+}
+
+bool platform_key_just_pressed(PlatformWindow* w, int key)
+{
+    return w->keys[key] && !w->keywasDown[key];
+}
+
+bool platform_key_just_released(PlatformWindow* w, int key)
+{
+    return !w->keys[key] && w->keywasDown[key];
+}

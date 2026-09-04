@@ -365,94 +365,37 @@ void cameraOnMouse(BasicCamera* camera, int x, int y)
     camera->target.Z = cosf(verRad) * cosf(horRad);
 }
 
-void cameraOnKeyboard(BasicCamera* camera, int key)
+void cameraOnKeyboard(BasicCamera* camera, const bool* keys)
 {
-    switch (key) {
-
-    case GLFW_KEY_UP:
-    case GLFW_KEY_W:
+    // Forward
+    if (keys[KEY_W] || keys[KEY_UP]) {
         camera->pos.X += camera->target.X * camera->speed;
         camera->pos.Y += camera->target.Y * camera->speed;
         camera->pos.Z += camera->target.Z * camera->speed;
-        break;
+    }
 
-    case GLFW_KEY_DOWN:
-    case GLFW_KEY_S:
+    // Backward
+    if (keys[KEY_S] || keys[KEY_DOWN]) {
         camera->pos.X -= camera->target.X * camera->speed;
         camera->pos.Y -= camera->target.Y * camera->speed;
         camera->pos.Z -= camera->target.Z * camera->speed;
-        break;
+    }
 
-    case GLFW_KEY_LEFT:
-    case GLFW_KEY_A: {
+    // Left
+    if (keys[KEY_A] || keys[KEY_LEFT]) {
         HMM_Vec3 left = HMM_NormV3(HMM_Cross(camera->target, camera->up));
         camera->pos.X -= left.X * camera->speed;
         camera->pos.Y -= left.Y * camera->speed;
         camera->pos.Z -= left.Z * camera->speed;
-        break;
     }
 
-    case GLFW_KEY_RIGHT:
-    case GLFW_KEY_D: {
+    // Right
+    if (keys[KEY_D] || keys[KEY_RIGHT]) {
         HMM_Vec3 right = HMM_NormV3(HMM_Cross(camera->target, camera->up));
         camera->pos.X += right.X * camera->speed;
         camera->pos.Y += right.Y * camera->speed;
         camera->pos.Z += right.Z * camera->speed;
-        break;
     }
-
-    default:
-        break;
-    }
-}
-
-GLFWwindow* glfw_init(int major_ver, int minor_ver, int width, int height, bool is_full_screen, const char* title)
-{
-    if (!glfwInit()) {
-        fprintf(stderr, "Failed to initialize GLFW\n");
-        exit(1);
-    }
-
-    glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-    GLFWmonitor* monitor = is_full_screen ? glfwGetPrimaryMonitor() : NULL;
-    GLFWwindow* window = NULL;
-
-    // Ported fallback logic from C++
-    if (major_ver == 0 && minor_ver == 0)
-    {
-      glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-      glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-      window = glfwCreateWindow(width, height, title, monitor, NULL);
-    }
-    else
-    {
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, major_ver);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, minor_ver);
-        window = glfwCreateWindow(width, height, title, monitor, NULL);
-    }
-
-    if (!window) {
-        fprintf(stderr, "Failed to create GLFW window\n");
-        glfwTerminate();
-        exit(1);
-    }
-
-    glfwMakeContextCurrent(window);
-
-    //  ADD NEW GLAD 2 INITIALIZATION BLOCK
-    int gl_version = gladLoadGL(glfwGetProcAddress);
-    if (gl_version == 0) {
-        fprintf(stderr, "Failed to initialize GLAD\n");
-        glfwTerminate();
-        exit(1);
-    }
-
-    // Force V-Sync to prevent frame-rate lighting bugs
-    glfwSwapInterval(1);
-    // glEnable(GL_FRAMEBUFFER_SRGB);
-    return window;
 }
 
 int

@@ -52,7 +52,7 @@ static void init_wgl_extensions(void)
   wglCreateContextAttribsARB = (PFNWGLCREATECONTEXTATTRIBSARBPROC)wglGetProcAddress("wglCreateContextAttribsARB");;
   wglChoosePixelFormatARB    = (PFNWGLCHOOSEPIXELFORMATARBPROC)wglGetProcAddress("wglChoosePixelFormatARB");
   
-  wglMakeCurrent(NULL);
+  wglMakeCurrent(NULL, NULL);
   wglDeleteContext(rc);
   ReleaseDC(dummy, dc);
   DestroyWindow(dummy);
@@ -102,33 +102,35 @@ static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lp
     case WM_KEYDOWN:
     case WM_KEYUP:
     {
-      if (window)
-      {
-        bool pressed = (msg == WM_KEYDOWN);
-        bool is_repeat = (msg == WM_KEYDOWN) && ((lparam & (1 << 30)) != 0);
-        
-        if (!is_repeat)
-        {
-          int key = KEY_NONE;
-          if (wparam == VK_ESCAPE) key = KEY_ESC;
-          
-          if (key != KEY_NONE)
-          {
-            window->keys[key] = pressed;
-          }       
+      if (!window) break;
+      bool pressed = (msg == WM_KEYDOWN);
+      bool is_repeat = (msg == WM_KEYDOWN) && ((lparam & (1 << 30)) != 0);
+
+      if (!is_repeat) {
+        int key = KEY_NONE;
+        switch (wparam) {
+          case VK_ESCAPE: key = KEY_ESC; break;
+          case 'Q':       key = KEY_Q;   break;
+          case 'C':       key = KEY_C;   break;
+          case 'W':       key = KEY_W;   break;
+          case 'A':       key = KEY_A;   break;
+          case 'S':       key = KEY_S;   break;
+          case 'D':       key = KEY_D;   break;
+          case 'F':       key = KEY_F;   break;
         }
+        if (key != KEY_NONE)
+          window->keys[key] = pressed;
       }
       break;
-
-      /*
-        bool pressed = (msg == WM_KEYDOWN);
-        int key = KEY_NONE;
-        if (wparam == VK_ESCAPE) key = KEY_ESC;
-        if (key != KEY_NONE)
-        {
-          window->keys[key] = pressed;
-        }
-        */
+    }
+    
+    case WM_MOUSEMOVE:
+    {
+      if (window) {
+        window->mouseX = (short)LOWORD(lparam);   // signed
+        window->mouseY = (short)HIWORD(lparam);
+      }
+      break;
     }
       
     case WM_CLOSE:
@@ -268,11 +270,13 @@ void* platform_get_proc_address(const char* name)
   void* proc = (void*)wglGetProcAddress(name);
   if (proc) return(proc);
 
-  return (void*)(GetProcAddress(GetModuleHandleA("opengl32.dll")));
+  return (void*)(GetProcAddress(GetModuleHandleA("opengl32.dll"), name));
 }
                 
 void platform_poll_events(PlatformWindow* window)
 {
+  memcpy(window->keywasDown, window->keys, sizeof(window->keys));
+
   MSG msg;
   while (PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE))
   {
@@ -289,3 +293,32 @@ void platform_swap_buffers(PlatformWindow* window)
   }
 }
 
+bool platform_key_down(PlatformWindow* w, int key)
+{
+    return w->keys[key];
+}
+
+bool platform_key_just_pressed(PlatformWindow* w, int key)
+{
+    return w->keys[key] && !w->keywasDown[key];
+}
+
+bool platform_key_just_released(PlatformWindow* w, int key)
+{
+    return !w->keys[key] && w->keywasDown[key];
+}
+
+void platform_set_user_data(PlatformWindow* w, void* data)
+{
+  if (w) w->userData = data;
+}
+
+bool platform_window_should_close(PlatformWindow* window)
+{
+  return window ? window->should_close : true;
+}
+
+void platform_window_close(PlatformWindow* window)
+{
+  if (window) window->should_close = true;
+}

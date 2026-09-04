@@ -9,7 +9,6 @@
 
 #if defined(_WIN32)
 
-#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
 #elif defined(__linux__)
@@ -25,7 +24,19 @@
 typedef enum
 {
   KEY_NONE = 0,
-  KEY_ESC = 1
+  KEY_ESC,
+  KEY_Q,
+  KEY_C,
+  KEY_W,
+  KEY_A,
+  KEY_S,
+  KEY_D,
+  KEY_F,
+  KEY_UP,
+  KEY_DOWN,
+  KEY_LEFT,
+  KEY_RIGHT,
+  KEY_COUNT
 } PlatformKeys;
 
 typedef enum
@@ -59,11 +70,18 @@ typedef struct PlatformWindow
   int               height;
 
   void(*framebuffer_size_callback)(struct PlatformWindow* window, int width, int height);
-  bool keys[512];
+  bool keys[KEY_COUNT];
+  bool keywasDown[KEY_COUNT];
+  int  mouseX;
+  int  mouseY;
+  bool mouseButtons[3];
+  void* userData;
 } PlatformWindow;
 
 int platform_init(void);
 PlatformWindow* platform_create_window(int width, int height, const char* title);
+void  platform_set_user_data(PlatformWindow* window, void* data);
+void* platform_get_user_data(PlatformWindow* window);
 void platform_terminate(void);
 void platform_set_framebuffer_size_callback(PlatformWindow* window, 
                                             void (*callback)(PlatformWindow* window, int width, int height));
@@ -73,5 +91,9 @@ void platform_swap_buffers(PlatformWindow* window);
 void* platform_get_proc_address(const char* name);
 void platform_poll_events(PlatformWindow* window);
 int  platform_get_key(PlatformWindow* window, int key);
+
+bool platform_key_down(PlatformWindow* window, int key);
+bool platform_key_just_pressed(PlatformWindow* window, int key);
+bool platform_key_just_released(PlatformWindow* window, int key);
 
 #endif // PLATFORM_H

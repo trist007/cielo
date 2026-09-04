@@ -2,9 +2,8 @@
 #define TERRAIN_H
 
 #include "glad/gl.h"
+#include "platform.h"
 
-#define GLFW_DLL
-#include "GLFW/glfw3.h"
 #include <stdbool.h>
 #include "HandmadeMath.h"
 #include "array2df.h"
@@ -121,7 +120,7 @@ struct BasicCamera
 typedef struct GameState GameState;
 struct GameState
 {
-    GLFWwindow*  window;
+    PlatformWindow*  window;
     BasicCamera gameCamera;
     bool isWireframe;
 
@@ -162,7 +161,7 @@ void     applyFIRFilter(Array2Df* heightMap, int terrainSize, float filter);
 
 void cameraPrint(BasicCamera* camera);
 void cameraOnMouse(BasicCamera* camera, int x, int y);
-void cameraOnKeyboard(BasicCamera* camera, int key);
+void cameraOnKeyboard(BasicCamera* camera, const bool* keys);
 
 char* readFile(const char* file, int* size);
 void  writeBinaryFile(const char* pFilename, const void* pData, int size);
@@ -172,5 +171,4 @@ bool  AddShader(GameState* gamestate, GLenum ShaderType, const char* pFilename);
 void diamondStep(int terrainSize, Array2Df* heightMap, int rectSize, float currentHeight);
 void squareStep(int terrainSize, Array2Df* heightMap, int rectSize, float currentHeight);
 
-GLFWwindow* glfw_init(int major_ver, int minor_ver, int width, int height, bool is_full_screen, const char* title);
 #endif // TERRAIN_H

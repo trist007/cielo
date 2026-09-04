@@ -7,14 +7,26 @@
 #include "terrain.h"
 #include "HandmadeMath.h"
 
-static void KeyCallback         (GLFWwindow* window, int key,   int scancode, int action, int mods);
-static void CursorPosCallback   (GLFWwindow* window, double x,  double y);
-static void MouseButtonCallback (GLFWwindow* window, int Button, int Action, int Mode);
-
-static void
-processInput(GLFWwindow* window)
+static void processInput(PlatformWindow* window, GameState* gs)
 {
-  if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) glfwSetWindowShouldClose(window, true);
+    // Exit – continuous is fine, or use just_pressed
+    if (platform_key_down(window, KEY_ESC) || platform_key_down(window, KEY_Q))
+        platform_window_close(window);
+
+    // One-shot actions
+    if (platform_key_just_pressed(window, KEY_C))
+        cameraPrint(&gs->gameCamera);
+
+    if (platform_key_just_pressed(window, KEY_F)) {   // better key than W
+        gs->isWireframe = !gs->isWireframe;
+        glPolygonMode(GL_FRONT_AND_BACK, gs->isWireframe ? GL_LINE : GL_FILL);
+    }
+
+    // Continuous movement
+    cameraOnKeyboard(&gs->gameCamera, window->keys);
+
+    // Mouse
+    cameraOnMouse(&gs->gameCamera, window->mouseX, window->mouseY);
 }
 
 static HMM_Vec3 normalizeFloat3(HMM_Vec3 vector)
@@ -53,68 +65,6 @@ void initBasicCamera(BasicCamera *gameCamera, PersProjInfo pers, HMM_Vec3 Pos,
   gameCamera->projection = HMM_Perspective_RH_ZO(HMM_AngleDeg(pers.FOV), aspect, pers.zNear, pers.zFar);
 }
 
-// INPUT
-static void PassiveMouseCB(GameState* gamestate, int x, int y)
-{
-    cameraOnMouse(&gamestate->gameCamera, x, y);
-}
- 
-static void KeyboardCB(GameState* gamestate, unsigned int key, int state)
-{
-    if (state == GLFW_PRESS) {
- 
-        switch (key) {
- 
-        case GLFW_KEY_ESCAPE:
-        case GLFW_KEY_Q:
-            glfwDestroyWindow(gamestate->window);
-            glfwTerminate();
-            exit(0);
- 
-        case GLFW_KEY_C:
-            cameraPrint(&gamestate->gameCamera);
-            break;
- 
-        case GLFW_KEY_W:
-            gamestate->isWireframe = !gamestate->isWireframe;
- 
-            if (gamestate->isWireframe) {
-                glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-            } else {
-                glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-            }
- 
-            break;
-        }
-    }
- 
-    cameraOnKeyboard(&gamestate->gameCamera, key);
-}
- 
-static void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
-{
-    (void)scancode; (void)mods;
-    GameState* gamestate = (GameState*)glfwGetWindowUserPointer(window);
-    KeyboardCB(gamestate, (unsigned int)key, action);
-}
- 
-static void CursorPosCallback(GLFWwindow* window, double x, double y)
-{
-    GameState* gamestate = (GameState*)glfwGetWindowUserPointer(window);
-    PassiveMouseCB(gamestate, (int)x, (int)y);
-}
- 
-static void MouseButtonCallback(GLFWwindow* window, int Button, int Action, int Mode)
-{
-    (void)Mode;
-    GameState* gamestate = (GameState*)glfwGetWindowUserPointer(window);
-    double x, y;
-    glfwGetCursorPos(window, &x, &y);
-    /* If you have a dedicated mouse-button handler, call it here, e.g.:
-       Camera_OnMouseButton(gamestate->gameCamera, Button, Action, (int)x, (int)y); */
-    (void)gamestate; (void)Button; (void)Action; (void)x; (void)y;
-}
-
 int main(int argc, char** argv)
 {
 
@@ -126,12 +76,23 @@ int main(int argc, char** argv)
     return(1);
   }
 
-  // create window
-  int major_ver = 0;
-  int minor_ver = 0;
-  bool is_full_screen = false;
+  // --- Platform init ---
+  if (platform_init() < 0) {
+    fprintf(stderr, "platform_init failed\n");
+    return 1;
+  }
 
-  gamestate->window = glfw_init(major_ver, minor_ver, WINDOW_WIDTH, WINDOW_HEIGHT, is_full_screen, "Terrain Rendering - Demo 1");
+  gamestate->window = platform_create_window(WINDOW_WIDTH, WINDOW_HEIGHT, "Terrain Rendering");
+  if (!gamestate->window) {
+    fprintf(stderr, "Failed to create window\n");
+    return 1;
+  }
+
+  // Load OpenGL functions (GLAD) AFTER the context is current
+  if (!gladLoadGL((GLADloadfunc)platform_get_proc_address)) {
+    fprintf(stderr, "Failed to load OpenGL functions\n");
+    return 1;
+  }
 
   gamestate->shaderProg = glCreateProgram();
 
@@ -185,16 +146,6 @@ int main(int argc, char** argv)
   gamestate->terrain.shaderProg = gamestate->shaderProg;
   gamestate->terrain.VPLoc      = gamestate->VPLoc;
 
-  // glfw callbacks
-  glfwSetWindowUserPointer(gamestate->window, gamestate);  /* lets callbacks find gamestate */
-
-  glfwSetCursorPos(gamestate->window, WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
-
-  glfwSetKeyCallback(gamestate->window, KeyCallback);
-  glfwSetCursorPosCallback(gamestate->window, CursorPosCallback);
-  glfwSetMouseButtonCallback(gamestate->window, MouseButtonCallback);
-
-
   // camera
   HMM_Vec3 Pos = {100.0f, 220.0f, -400.0f};
   HMM_Vec3 Target = {0.0f, -0.25f, 1.0f};
@@ -233,11 +184,17 @@ int main(int argc, char** argv)
   glCullFace(GL_BACK);
   glEnable(GL_CULL_FACE);
   glEnable(GL_DEPTH_TEST);
+  
+  platform_set_user_data(gamestate->window, gamestate);
 
-  while (!glfwWindowShouldClose(gamestate->window)) {
-      renderScene(&gamestate->terrain, &gamestate->gameCamera);
-      glfwSwapBuffers(gamestate->window);
-      glfwPollEvents();
+  while (!platform_window_should_close(gamestate->window))
+  {
+    
+    platform_poll_events(gamestate->window);
+    processInput(gamestate->window, gamestate);
+
+    renderScene(&gamestate->terrain, &gamestate->gameCamera);
+    platform_swap_buffers(gamestate->window);
   }
 
   // shutdown
