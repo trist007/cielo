@@ -218,11 +218,13 @@ int main(int argc, char** argv)
   float minHeight = 0.0f;
   float maxHeight = 300.0f;
   float filter = 0.5f;
+  float roughness = 0.5f;
 
   gamestate->terrain.minHeightLoc = getUniformLocation(gamestate, "gMinHeight");
   gamestate->terrain.maxHeightLoc = getUniformLocation(gamestate, "gMaxHeight");
 
-  createFaultFormation(&gamestate->terrain, size, iterations, minHeight, maxHeight, filter);
+  // createFaultFormation(&gamestate->terrain, size, iterations, minHeight, maxHeight, filter);
+  createMidpointDisplacement(&gamestate->terrain, size, roughness, minHeight, maxHeight);
 
   glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
   glFrontFace(GL_CCW);

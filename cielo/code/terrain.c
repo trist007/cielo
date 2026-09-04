@@ -617,7 +617,7 @@ createMidpointDisplacement(struct BaseTerrain* terrain, int terrainSize, float r
 void
 createMidpointDisplacementF32(struct BaseTerrain* terrain, int terrainSize, float roughness)
 {
-  int rectSize = terrain->terrainSize;
+  int rectSize = calcNextPowerOfTwo(terrain->terrainSize);
   float currentHeight = (float)rectSize / 2.0f;
   float heightReduce = pow(2.0f, -roughness);
   
@@ -642,6 +642,10 @@ diamondStep(int terrainSize, Array2Df* heightMap, int rectSize, float currentHei
     {
       int nextX = (x + rectSize) % terrainSize;
       int nextY = (y + rectSize) % terrainSize;
+      
+      // account for wrap around
+      if (nextX < x) nextX = terrainSize - 1;
+      if (nextY < y) nextY = terrainSize - 1;
       
       float topLeft     = array2Df_get(heightMap, x, y);
       float topRight    = array2Df_get(heightMap, nextX, y);
@@ -670,6 +674,10 @@ squareStep(int terrainSize, Array2Df* heightMap, int rectSize, float currentHeig
   {
    int nextX = (x + rectSize) % terrainSize;
    int nextY = (y + rectSize) % terrainSize;
+
+   // deal with wrap around
+   if (nextX < x) nextX = terrainSize - 1;
+   if (nextY < y) nextY = terrainSize - 1;
       
    int midX = x + halfRectSize;
    int midY = y + halfRectSize;
