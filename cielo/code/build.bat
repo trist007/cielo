@@ -39,7 +39,7 @@ REM ── MAIN EXE ────────────────────
         %LDFLAGS%
     if %errorlevel% neq 0 ( echo [MAIN] link failed & goto end )
 
-    echo [MAIN] terrain.exe built with OpenGL and GLFW.
+    echo [MAIN] terrain.exe built with OpenGL, GLAD, and GLFW. 
 )
 
 :end

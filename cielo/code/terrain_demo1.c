@@ -218,7 +218,9 @@ int main(int argc, char** argv)
   float minHeight = 0.0f;
   float maxHeight = 300.0f;
   float filter = 0.5f;
-  float roughness = 0.5f;
+  
+  // NOTE(trist007): this will smoothen out peaks, at 0.5f the peaks are sharp, at 2.0f they are super round
+  float roughness = 1.0f;
 
   gamestate->terrain.minHeightLoc = getUniformLocation(gamestate, "gMinHeight");
   gamestate->terrain.maxHeightLoc = getUniformLocation(gamestate, "gMaxHeight");

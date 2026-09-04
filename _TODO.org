@@ -1,0 +1,95 @@
+#+title: terrain generator
+
+======================================================
+// export to glb func
+======================================================
+
+A GLB file is:
+
+[12-byte header: magic "glTF", version, total length]
+[JSON chunk: chunk length, chunk type "JSON", JSON text]
+[BIN chunk:  chunk length, chunk type "BIN\0", raw binary data]
+
+The JSON chunk describes buffer views/accessors pointing into byte offsets of the BIN chunk. For your terrain mesh specifically, you'd need:
+
+1 buffer view + accessor for vertex positions (your Vertex{x,y,z} array — GL_FLOAT, VEC3) — glTF requires min/max bounds on the POSITION accessor, so you'll need to scan for that.
+1 buffer view + accessor for indices (your GLuint index array — UNSIGNED_INT)
+glTF also requires 4-byte alignment padding on each chunk (pad JSON with spaces 0x20, pad BIN with zero bytes 0x00)
+
+I can write you a terrainExportGLB() function that takes your existing Vertex* vertices, int numVertices, GLuint* indices, int numIndices (the same data you already build in triangleListCreate) and dumps a valid .glb — want me to write that out? It'd slot in right where you currently call free(vertices); free(indices); in triangleListCreate, since that's the one place you have the raw CPU-side buffers before they're discarded after upload to the GPU.
+
+no i want to write the export function just need some guidance, yes i will use the cgltf.h
+
+Good call — cgltf does have a write path (cgltf_write_file / cgltf_write), it's just less documented than the parser side since most people only use it for reading. Here's the shape of what you need.
+
+The core idea
+
+cgltf writing works by you filling in a cgltf_data struct (the same struct it produces when parsing) describing buffers, buffer views, accessors, meshes, and nodes — then calling cgltf_write_file() which serializes that struct to JSON/GLB. The tricky part isn't the glTF logic (your case is minimal: 1 mesh, 1 primitive, no materials), it's that cgltf's write path expects the binary buffer data to already exist on disk or be embedded — it doesn't manage packing your vertex/index arrays into a .bin blob for you. You do that part manually.
+
+Step-by-step
+
+1. Decide GLB vs glTF+bin. For GLB (single file), you write your raw vertex+index bytes into one contiguous buffer, then set buffer.uri = NULL and tell cgltf to write as binary. Check cgltf_write_file — it picks GLB output based on the output filename extension (.glb) combined with how you set up the buffer (a NULL uri with data means embed as GLB's BIN chunk). Look at cgltf_write.h's handling of options.type = cgltf_file_type_glb.
+
+2. Build a single interleaved-or-separate binary blob. Since your vertex struct is just {x,y,z} floats and your indices are GLuint, concatenate:
+
+[ all vertex floats ][ padding to 4-byte align ][ all indices ]
+
+Track the byte offset where indices start — you'll need it for the accessor.
+
+3. Fill cgltf_buffer:
+
+c
+cgltf_buffer buffer = {0};
+buffer.size = totalByteSize;
+buffer.data = blobPointer;   // your malloc'd combined buffer
+buffer.uri = NULL;           // NULL => embed in GLB BIN chunk
+
+4. Fill two cgltf_buffer_views — one for positions, one for indices, each pointing at &buffer, with offset/size matching where each chunk lives in your blob, and type set to cgltf_buffer_view_type_vertices or _indices.
+
+5. Fill two cgltf_accessors:
+
+Position accessor: component_type = cgltf_component_type_r_32f, type = cgltf_type_vec3, count = numVertices, and — important — glTF requires min/max bounds on POSITION accessors. You must scan your vertex array yourself and fill accessor.min[3] / accessor.max[3], or viewers may reject the file.
+Index accessor: component_type = cgltf_component_type_r_32u, type = cgltf_type_scalar, count = numIndices.
+
+6. Build the mesh/primitive:
+
+c
+cgltf_attribute attr = {0};
+attr.name = "POSITION";
+attr.type = cgltf_attribute_type_position;
+attr.data = &posAccessor;
+
+cgltf_primitive prim = {0};
+prim.type = cgltf_primitive_type_triangles;
+prim.attributes = &attr;
+prim.attributes_count = 1;
+prim.indices = &idxAccessor;
+
+cgltf_mesh mesh = {0};
+mesh.primitives = &prim;
+mesh.primitives_count = 1;
+
+7. Node + scene — glTF wants at least one node referencing the mesh, and a scene referencing the node. This is boilerplate but non-optional if you want it to open in standard viewers (Blender, etc.) rather than just be technically-valid data.
+
+8. Wire it all into cgltf_data:
+
+c
+cgltf_data data = {0};
+data.buffers = &buffer;       data.buffers_count = 1;
+data.buffer_views = views;    data.buffer_views_count = 2;
+data.accessors = accessors;   data.accessors_count = 2;
+data.meshes = &mesh;          data.meshes_count = 1;
+data.nodes = &node;           data.nodes_count = 1;
+data.scenes = &scene;         data.scenes_count = 1;
+data.scene = &scene;
+
+9. Call the writer:
+
+c
+cgltf_options options = {0};
+cgltf_result result = cgltf_write_file(&options, "terrain.glb", &data);
+Gotchas specific to your codebase
+Your Vertex struct is 3 floats packed tightly (GLfloat x,y,z) — that's already exactly glTF's expected VEC3-float layout, so no repacking needed for positions, just a straight memcpy of your existing array.
+Your indices are GLuint (32-bit) — glTF supports UNSIGNED_INT indices but some older viewers/exporters expect UNSIGNED_SHORT (16-bit) for compatibility. With terrainSize=256 you have up to 65536 vertices, right at the edge of what fits in 16-bit indices (max index value 65535) — so keep 32-bit indices to be safe, just make sure you set component_type correctly.
+Do this right where you already have vertices/indices in scope in triangleListCreate, before the free(vertices); free(indices); calls — that's your one shot at the raw CPU-side data.
+Double check whichever cgltf.h version you've vendored actually includes cgltf_write.h's contents — in some distributions the write functionality is a separate single-header (cgltf_write.h) you include alongside cgltf.h, not bundled into the same file. Worth grepping for cgltf_write_file in your vendored copy before you start.
