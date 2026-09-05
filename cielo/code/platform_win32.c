@@ -1,5 +1,3 @@
-#include "glad/gl.h"
-#include "wglext.h"
 #include "platform.h"
 
 static PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB = NULL;

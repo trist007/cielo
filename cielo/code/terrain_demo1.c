@@ -7,6 +7,8 @@
 #include "terrain.h"
 #include "HandmadeMath.h"
 
+#include "gl_load.h"
+
 static void processInput(PlatformWindow* window, GameState* gs)
 {
     // Exit – continuous is fine, or use just_pressed
@@ -89,7 +91,7 @@ int main(int argc, char** argv)
   }
 
   // Load OpenGL functions (GLAD) AFTER the context is current
-  if (!gladLoadGL((GLADloadfunc)platform_get_proc_address)) {
+  if (!gl_load_all((GL_get_proc_address)platform_get_proc_address)) {
     fprintf(stderr, "Failed to load OpenGL functions\n");
     return 1;
   }

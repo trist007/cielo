@@ -1,12 +1,14 @@
 #ifndef TERRAIN_H
 #define TERRAIN_H
 
-#include "glad/gl.h"
 #include "platform.h"
+#include "gl_load.h"
 
-#include <stdbool.h>
 #include "HandmadeMath.h"
+#include <stdbool.h>
 #include "array2df.h"
+
+#include "GL/glcorearb.h"
 
 #define WINDOW_WIDTH  1920
 #define WINDOW_HEIGHT 1080

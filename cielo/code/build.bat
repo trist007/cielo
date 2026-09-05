@@ -26,7 +26,7 @@ set LDFLAGS=/LIBPATH:C:\vcpkg\vcpkg-2026.07.29\installed\x64-windows\lib ^
 REM ── MAIN EXE ──────────────────────────────────────────────────────────────
     echo [MAIN] Compiling terrain with opengl...
     cl /c %CommonCompilerFlags% ^
-        .\gl.c ^
+        .\gl_load.c ^
         .\platform.c ^
         .\terrain_demo1.c ^
         .\terrain.c
@@ -36,7 +36,7 @@ REM ── MAIN EXE ────────────────────
     link /INCREMENTAL:NO /OPT:REF /DEBUG ^
         /PDB:terrain.pdb ^
         /out:terrain.exe ^
-        gl.obj platform.obj terrain_demo1.obj terrain.obj ^
+        gl_load.obj platform.obj terrain_demo1.obj terrain.obj ^
         %LDFLAGS%
     if %errorlevel% neq 0 ( echo [MAIN] link failed & goto end )
 

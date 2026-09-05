@@ -7,10 +7,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+
 #if defined(_WIN32)
 
 #include <windows.h>
-
+#include "GL/glcorearb.h"
+#include "wglext.h"
 #elif defined(__linux__)
 
 #include <xcb/xcb.h>
