@@ -12,7 +12,7 @@
 
 #include <windows.h>
 #include "GL/glcorearb.h"
-#include "wglext.h"
+#include "GL/wglext.h"
 #elif defined(__linux__)
 
 #include <xcb/xcb.h>

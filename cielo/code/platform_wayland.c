@@ -1,6 +1,4 @@
 #include "platform.h"
-#include "glad/gl.h"
-#include "platform.h"
 #include "xdg-shell-client-protocol.h"
 #include <stdio.h>
 #include <stdlib.h>

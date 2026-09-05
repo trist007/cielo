@@ -7,8 +7,6 @@
 #include "terrain.h"
 #include "HandmadeMath.h"
 
-#include "gl_load.h"
-
 static void processInput(PlatformWindow* window, GameState* gs)
 {
     // Exit – continuous is fine, or use just_pressed

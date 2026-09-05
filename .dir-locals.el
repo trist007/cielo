@@ -10,7 +10,7 @@
                 (lambda () (interactive) (compile "build.bat")))
               (define-key map (kbd "<f2>")
                 (lambda () (interactive)
-                  (start-process "terrain" "+terrain-output*"
+                  (start-process "terrain" "*terrain-output*"
                                  (expand-file-name "run.bat" default-directory))))
               (define-key map (kbd "<f3>")
                 (lambda () (interactive)
