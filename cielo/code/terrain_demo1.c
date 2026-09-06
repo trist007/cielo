@@ -147,9 +147,9 @@ int main(int argc, char** argv)
   gamestate->terrain.VPLoc      = gamestate->VPLoc;
 
   // camera
-  HMM_Vec3 Pos = {100.0f, 220.0f, -400.0f};
-  HMM_Vec3 Target = {0.0f, -0.25f, 1.0f};
-  HMM_Vec3 Up = {0.0, 1.0f, 0.0f};
+  HMM_Vec3 Pos = {{100.0f, 220.0f, -400.0f}};
+  HMM_Vec3 Target = {{0.0f, -0.25f, 1.0f}};
+  HMM_Vec3 Up = {{0.0f, 1.0f, 0.0f}};
 
   float FOV = 45.0f;
   float zNear = 0.1f;

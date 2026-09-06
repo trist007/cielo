@@ -1,21 +1,19 @@
 CompileFlags:
-  Compiler: cl
+  Compiler: clang
   Add:
-    - /IC:\dev\cielo\cielo\code
-    - /IC:\dev\cielo\cielo\code\glad
-    - /IC:\dev\cielo\cielo\code\KHR
-    - /IC:\dev\cielo\cielo\code\assimp5
+    - -Ihome/trist007/dev/cielo/cielo/code
+    - -Ihome/trist007/dev/cielo/cielo/code/GL
   Remove: [-x]
 ---
 
 If:
   PathMatch: .*\.(c|h)$
 CompileFlags:
-  Add: /TC
+  Add: [-x, c]
 
 ---
 
 If:
   PathMatch: .*\.(cpp|cc|cxx|hpp)$
 CompileFlags:
-  Add: /TP
+  Add: [-x, c++]

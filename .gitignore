@@ -13,8 +13,11 @@ yarn-error.log*
 .eslintcache
 
 *.obj
+*.o
 *.exe
 *.sh
 *.pdb
 *.exe
 *.rdi
+
+terrain

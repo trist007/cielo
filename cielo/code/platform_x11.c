@@ -37,12 +37,15 @@ PlatformWindow* platform_create_window(int width, int height, const char* title)
   
   window->window = xcb_generate_id(window->conn);
   uint32_t mask = XCB_CW_BACK_PIXMAP | XCB_CW_EVENT_MASK;
-  uint32_t values[2] = 
-  {
+  uint32_t values[2] = {
+
     XCB_NONE,
     XCB_EVENT_MASK_EXPOSURE |
     XCB_EVENT_MASK_KEY_PRESS |
     XCB_EVENT_MASK_KEY_RELEASE |
+    XCB_EVENT_MASK_BUTTON_PRESS |
+    XCB_EVENT_MASK_BUTTON_RELEASE |
+    XCB_EVENT_MASK_POINTER_MOTION |
     XCB_EVENT_MASK_STRUCTURE_NOTIFY
   };
 
@@ -234,6 +237,28 @@ void platform_poll_events(PlatformWindow* window)
         window->keys[key] = pressed;
         break;
       }
+
+      case XCB_MOTION_NOTIFY:
+      {
+        xcb_motion_notify_event_t* motion = (xcb_motion_notify_event_t*)event;
+        window->mouseX = motion->event_x;
+        window->mouseY = motion->event_y;
+        break;
+      }
+
+      case XCB_BUTTON_PRESS:
+      case XCB_BUTTON_RELEASE:
+      {
+        xcb_button_press_event_t* bp = (xcb_button_press_event_t*)event;
+        int pressed = (event->response_type & ~0x80) == XCB_BUTTON_PRESS;
+
+        // XCB buttons: 1 = left, 2 = middle, 3 = right
+        if (bp->detail >= 1 && bp->detail <= 3)
+        {
+            window->mouseButtons[bp->detail - 1] = pressed;
+        }
+            break;
+        }
       
       case XCB_CLIENT_MESSAGE:
       {
@@ -273,3 +298,12 @@ bool platform_key_just_released(PlatformWindow* w, int key)
 {
     return !w->keys[key] && w->keywasDown[key];
 }
+
+void platform_set_user_data(PlatformWindow* w, void* data)
+{
+  if (w) w->userData = data;
+}
+
+/*
+2. Missing event handling in platform_poll_eventsAdd these cases inside the switch:c
+*/

@@ -173,9 +173,13 @@ char* readFile(const char* file, int* size)
     return(NULL);
   }
 
-  struct _stat stat_buf;
-
-  if (_stat(file, &stat_buf) != 0) {
+#ifdef _WIN32
+    struct _stat stat_buf;
+    if (_stat(file, &stat_buf) != 0) {
+#else
+    struct stat stat_buf;
+    if (stat(file, &stat_buf) != 0) {
+#endif
     fprintf(stderr, "error getting file stats for '%s': %s\n", file, strerror(errno));
     fclose(file_ptr);
     return(NULL);
@@ -204,9 +208,13 @@ char* readBinaryFile(const char* file, int* size)
     return(NULL);
   }
 
-  struct _stat stat_buf;
-
-  if (_stat(file, &stat_buf) != 0) {
+#ifdef _WIN32
+    struct _stat stat_buf;
+    if (_stat(file, &stat_buf) != 0) {
+#else
+    struct stat stat_buf;
+    if (stat(file, &stat_buf) != 0) {
+#endif
     fprintf(stderr, "error getting file stats for '%s': %s\n", file, strerror(errno));
     fclose(file_ptr);
     return(NULL);
@@ -266,12 +274,19 @@ bool AddShader(GameState* gamestate, GLenum ShaderType, const char* pFilename)
 
   FILE* file_ptr = NULL;
 
-  errno_t err = fopen_s(&file_ptr, pFilename, "rb");
-  if (err != 0 || file_ptr == NULL)
-  {
-    fprintf(stderr, "Error opening file error: %d\n", err);  
-    return(false);
-  }
+#ifdef _WIN32
+    errno_t err = fopen_s(&file_ptr, pFilename, "rb");
+    if (err != 0 || file_ptr == NULL) {
+        fprintf(stderr, "Error opening file error: %d\n", err);
+        return false;
+    }
+#else
+    file_ptr = fopen(pFilename, "rb");
+    if (!file_ptr) {
+        fprintf(stderr, "unable to open file '%s': %s\n", pFilename, strerror(errno));
+        return false;
+    }
+#endif
 
   fseek(file_ptr, 0, SEEK_END);
   long fileSize = ftell(file_ptr);
