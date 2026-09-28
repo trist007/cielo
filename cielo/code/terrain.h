@@ -1,13 +1,14 @@
 #ifndef TERRAIN_H
 #define TERRAIN_H
 
+#include "texture.h"
+
 #include "platform.h"
 #include "gl_load.h"
 
 #include "HandmadeMath.h"
 #include <stdbool.h>
 #include "array2df.h"
-#include "texture.h"
 
 #include "GL/glcorearb.h"
 
@@ -135,6 +136,9 @@ struct GameState
   
   char   textureFile[4][256];
   struct Texture texture[4];
+  int    numTextures;
+  struct TextureTile textureTiles[MAX_TEXTURE_TILES];
+  int    numTextureTiles;
 
   GLuint VPLoc;
   PersProjInfo persProjInfo;
@@ -152,6 +156,8 @@ void createFaultFormationInternal(Array2Df* heightMap, int terrainSize, int inte
 void createFaultFormation(struct BaseTerrain* terrain, int terrainSize, int interations, float minHeight, float maxHeight, float filter);
 void generateRandomTerrainPoints(int terrainSize, struct TerrainPoint* p1, struct TerrainPoint* p2);
 int  areTerrainPointsEqual(struct TerrainPoint* p1, struct TerrainPoint* p2);
+float getHeight(BaseTerrain* terrain, int x, int z);
+float getHeightInterpolated(BaseTerrain* terrain, float x, float z);
 
 void  createMidpointDisplacementF32(struct BaseTerrain* terrain, int terrainSize, float roughness);
 void  createMidpointDisplacement(struct BaseTerrain* terrain, int terrainSize, float roughness, float minHeight, float maxHeight);

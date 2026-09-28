@@ -713,3 +713,32 @@ calcNextPowerOfTwo(int value)
   }
   return (result);
 }
+
+float
+getHeight(BaseTerrain* terrain, int x, int z)
+{
+  return array2Df_get(&terrain->heightMap, x, z);
+}
+
+float
+getHeightInterpolated(BaseTerrain* terrain, float x, float z)
+{
+  float baseHeight = getHeight(terrain, (int)x, (int)z);
+  
+  if (((int)x + 1 >= terrain->terrainSize) || ((int)z + 1 >= terrain->terrainSize))
+  {
+    return baseHeight;
+  }
+  
+  float nextXHeight = getHeight(terrain, (int)x + 1, (int)z);
+  float ratioX = x - floorf(x);
+  float interpolatedHeightX = (nextXHeight - baseHeight) * ratioX + baseHeight;
+  
+  float nextZHeight = getHeight(terrain, (int)x, (int)z + 1);
+  float ratioZ = z - floorf(z);
+  float interpolatedHeightZ = (nextZHeight - baseHeight) * ratioZ + baseHeight;
+
+  float finalHeight = (interpolatedHeightX + interpolatedHeightZ) / 2.0f;
+  
+  return(finalHeight);
+}

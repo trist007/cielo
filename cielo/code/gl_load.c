@@ -33,6 +33,7 @@ PFNGLPOLYGONMODEPROC             glPolygonMode;
 PFNGLSHADERSOURCEPROC            glShaderSource;
 PFNGLTEXIMAGE2DPROC              glTexImage2D;
 PFNGLTEXPARAMETERIPROC           glTexParameteri;
+PFNGLTEXPARAMETERIVPROC          glTexParameteriv;
 PFNGLUNIFORM1FPROC               glUniform1f;
 PFNGLUNIFORMMATRIX4FVPROC        glUniformMatrix4fv;
 PFNGLUSEPROGRAMPROC              glUseProgram;
@@ -75,6 +76,7 @@ int gl_load_all(GL_get_proc_address func)
   glShaderSource            = (PFNGLSHADERSOURCEPROC) func("glShaderSource");
   glTexImage2D              = (PFNGLTEXIMAGE2DPROC) func("glTexImage2D");
   glTexParameteri           = (PFNGLTEXPARAMETERIPROC) func("glTexParameteri");
+  glTexParameteriv          = (PFNGLTEXPARAMETERIVPROC) func("glTexParameteriv");
   glUniform1f               = (PFNGLUNIFORM1FPROC) func("glUniform1f");
   glUniformMatrix4fv        = (PFNGLUNIFORMMATRIX4FVPROC) func("glUniformMatrix4fv");
   glUseProgram              = (PFNGLUSEPROGRAMPROC) func("glUseProgram");

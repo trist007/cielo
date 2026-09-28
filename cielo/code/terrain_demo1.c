@@ -213,7 +213,6 @@ int main(int argc, char** argv)
     glBindTexture(GL_TEXTURE_2D, gamestate->texture[i].textureObj);
   }
 
-
   // createFaultFormation(&gamestate->terrain, size, iterations, minHeight, maxHeight, filter);
   createMidpointDisplacement(&gamestate->terrain, size, roughness, minHeight, maxHeight);
 
