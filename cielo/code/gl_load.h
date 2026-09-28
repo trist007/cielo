@@ -20,6 +20,7 @@ extern PFNGLCREATESHADERPROC            glCreateShader;
 extern PFNGLCULLFACEPROC                glCullFace;
 extern PFNGLDELETEBUFFERSPROC           glDeleteBuffers;
 extern PFNGLDELETESHADERPROC            glDeleteShader;
+extern PFNGLDELETETEXTURESPROC          glDeleteTextures;
 extern PFNGLDELETEVERTEXARRAYSPROC      glDeleteVertexArrays;
 extern PFNGLDRAWELEMENTSPROC            glDrawElements;
 extern PFNGLENABLEPROC                  glEnable;

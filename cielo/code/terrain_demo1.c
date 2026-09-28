@@ -8,6 +8,90 @@
 #include "texture.h"
 #include "HandmadeMath.h"
 
+static void
+initTerrainMultiTextures(GameState* gamestate)
+{
+  float WorldScale                = 2.0f;
+  float TextureScale              = 4.0f;
+  gamestate->terrain.worldScale   = WorldScale;
+  gamestate->terrain.textureScale = TextureScale;
+  
+  // Load Textures
+#if defined(_WIN32)
+  strncpy_s(gamestate->textureFile[0], MAX_CHAR, "../assets/textures/IMGP5525_seamless.jpg", _TRUNCATE);
+  strncpy_s(gamestate->textureFile[1], MAX_CHAR, "../assets/textures/IMGP5487_seamless.jpg", _TRUNCATE);
+  strncpy_s(gamestate->textureFile[2], MAX_CHAR, "../assets/textures/tilable-IMG_0044-verydark.png", _TRUNCATE);
+  strncpy_s(gamestate->textureFile[3], MAX_CHAR, "../assets/textures/water.png", _TRUNCATE);
+#else
+  strncpy(gamestate->textureFile[0], "../assets/textures/IMGP5525_seamless.jpg", MAX_CHAR - 1);
+  gamestate->textureFile[0][MAX_CHAR - 1] = '\0';
+  strncpy(gamestate->textureFile[1], "../assets/textures/IMGP5487_seamless.jpg", MAX_CHAR - 1);
+  gamestate->textureFile[1][MAX_CHAR - 1] = '\0';
+  strncpy(gamestate->textureFile[2], "../assets/textures/tilable-IMG_0044-verydark.png", MAX_CHAR - 1);
+  gamestate->textureFile[2][MAX_CHAR - 1] = '\0';
+  strncpy(gamestate->textureFile[3], "../assets/textures/water.png", MAX_CHAR - 1);
+  gamestate->textureFile[3][MAX_CHAR - 1] = '\0';
+#endif
+  
+  // Load Textures
+  for (int i = 0; i < 4; i++)
+  {
+    if (!textureLoad(&gamestate->texture[i], GL_TEXTURE_2D, gamestate->textureFile[i]))
+    {
+      fprintf(stderr, "ERROR: unable to load texture %d: %s\n", i, gamestate->textureFile[i]);
+      abort();
+    }
+  }
+
+  // Init Terrain
+  int   size       = 512;
+  int   iterations = 500;
+  float minHeight  = 0.0f;
+  float maxHeight  = 300.0f;
+  float filter     = 0.5f;
+  
+  // NOTE(trist007): this will smoothen out peaks, at 0.5f the peaks are sharp, at 2.0f they are super round
+  float roughness = 1.0f;
+
+  gamestate->terrain.minHeightLoc = getUniformLocation(gamestate, "gMinHeight");
+  gamestate->terrain.maxHeightLoc = getUniformLocation(gamestate, "gMaxHeight");
+     
+  // Bind Textures
+  for (int i = 0; i < 4; i++)
+  {
+    glActiveTexture(GL_TEXTURE0 + i);
+    glBindTexture(GL_TEXTURE_2D, gamestate->texture[i].textureObj);
+  }
+
+  // createFaultFormation(&gamestate->terrain, size, iterations, minHeight, maxHeight, filter);
+  createMidpointDisplacement(&gamestate->terrain, size, roughness, minHeight, maxHeight);
+}
+
+static void
+initTerrainTextureGenerator(GameState* gamestate)
+{
+  float WorldScale                = 2.0f;
+  float TextureScale              = 4.0f;
+  gamestate->terrain.worldScale   = WorldScale;
+  gamestate->terrain.textureScale = TextureScale;
+
+  int   size       = 512;
+  int   iterations = 500;
+  float minHeight  = 0.0f;
+  float maxHeight  = 300.0f;
+  float filter     = 0.5f;
+
+  loadTile(&gamestate->numTextureTiles, &gamestate->textureTiles[gamestate->numTextureTiles], "../assets/textures/rock02_2.jpg");
+  loadTile(&gamestate->numTextureTiles, &gamestate->textureTiles[gamestate->numTextureTiles], "../assets/textures/rock01.jpg");
+  loadTile(&gamestate->numTextureTiles, &gamestate->textureTiles[gamestate->numTextureTiles], "../assets/textures/tilable-IMG_0044-verydark.png");
+  loadTile(&gamestate->numTextureTiles, &gamestate->textureTiles[gamestate->numTextureTiles], "../assets/textures/water.png");
+  
+  int textureSize = 1024;
+  
+  generateTexture(gamestate, textureSize, minHeight, maxHeight);
+}
+
+
 static void processInput(PlatformWindow* window, GameState* gs)
 {
     // Exit – continuous is fine, or use just_pressed
@@ -160,61 +244,9 @@ int main(int argc, char** argv)
 
   initBasicCamera(&gamestate->gameCamera, gamestate->persProjInfo, Pos, Target, Up);
 
-  // Create Terrain
-  float WorldScale                = 2.0f;
-  float TextureScale              = 4.0f;
-  gamestate->terrain.worldScale   = WorldScale;
-  gamestate->terrain.textureScale = TextureScale;
-  
-  // Load Textures
-#if defined(_WIN32)
-  strncpy_s(gamestate->textureFile[0], 256, "../assets/textures/IMGP5525_seamless.jpg", _TRUNCATE);
-  strncpy_s(gamestate->textureFile[1], 256, "../assets/textures/IMGP5487_seamless.jpg", _TRUNCATE);
-  strncpy_s(gamestate->textureFile[2], 256, "../assets/textures/tilable-IMG_0044-verydark.png", _TRUNCATE);
-  strncpy_s(gamestate->textureFile[3], 256, "../assets/textures/water.png", _TRUNCATE);
-#else
-  strncpy(gamestate->textures[0], "../assets/textures/IMGP5525_seamless.jpg", 255);
-  gamestate->textures[0][255] = '\0';
-  strncpy(gamestate->textures[1], "../assets/textures/IMGP5487_seamless.jpg", 255);
-  gamestate->textures[1][255] = '\0';
-  strncpy(gamestate->textures[2], "../assets/textures/tilable-IMG_0044-verydark.png", 255);
-  gamestate->textures[2][255] = '\0';
-  strncpy(gamestate->textures[3], "../assets/textures/water.png", 255);
-  gamestate->textures[3][255] = '\0';
-#endif
-  
-  // Load Textures
-  for (int i = 0; i < 4; i++)
-  {
-    if (!textureLoad(&gamestate->texture[i], GL_TEXTURE_2D, gamestate->textureFile[i]))
-    {
-      fprintf(stderr, "ERROR: unable to load texture %d: %s\n", i, gamestate->textureFile[i]);
-      abort();
-    }
-  }
-
   // Init Terrain
-  int   size       = 512;
-  int   iterations = 500;
-  float minHeight  = 0.0f;
-  float maxHeight  = 300.0f;
-  float filter     = 0.5f;
-  
-  // NOTE(trist007): this will smoothen out peaks, at 0.5f the peaks are sharp, at 2.0f they are super round
-  float roughness = 1.0f;
-
-  gamestate->terrain.minHeightLoc = getUniformLocation(gamestate, "gMinHeight");
-  gamestate->terrain.maxHeightLoc = getUniformLocation(gamestate, "gMaxHeight");
-     
-  // Bind Textures
-  for (int i = 0; i < 4; i++)
-  {
-    glActiveTexture(GL_TEXTURE0 + i);
-    glBindTexture(GL_TEXTURE_2D, gamestate->texture[i].textureObj);
-  }
-
-  // createFaultFormation(&gamestate->terrain, size, iterations, minHeight, maxHeight, filter);
-  createMidpointDisplacement(&gamestate->terrain, size, roughness, minHeight, maxHeight);
+  // initTerrainMultiTextures(gamestate);
+  initTerrainTextureGenerator(gamestate);
 
   glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
   glFrontFace(GL_CCW);
@@ -234,6 +266,12 @@ int main(int argc, char** argv)
   }
 
   // shutdown
+  for (int i = 0; i < MAX_TEXTURE_TILES; i++)
+  {
+    unLoadSTBImage(&gamestate->textureTiles[i].image);
+    glDeleteTextures(1, &gamestate->texture[i].textureObj);
+  }
+
   free(gamestate->terrain.heightMap.data);
   gamestate->terrain.heightMap.data = NULL;
   gamestate->terrain.heightMap.rows = 0;

@@ -20,7 +20,7 @@ void terrainLoadHeightMapFile(BaseTerrain* terrain, const char* pFilename)
   if (FileSize % sizeof(float) != 0) {
     printf("%s:%d - '%s' does not contain a whole number of floats (size %d)\n",
            __FILE__, __LINE__, pFilename, FileSize);
-    exit(0);
+    abort();
   }
 
   terrain->terrainSize = (int)sqrtf((float)FileSize / (float)sizeof(float));
@@ -29,7 +29,7 @@ void terrainLoadHeightMapFile(BaseTerrain* terrain, const char* pFilename)
   if ((terrain->terrainSize * terrain->terrainSize) != (FileSize / (int)sizeof(float))) {
     printf("%s:%d - '%s' does not contain a square height map - size %d\n",
            __FILE__, __LINE__, pFilename, FileSize);
-    exit(0);
+    abort();
   }
 
   terrain->heightMap.rows = terrain->terrainSize;
@@ -78,7 +78,7 @@ void triangleListCreate(TriangleList* tl, int width, int depth, BaseTerrain* ter
 
   if (!vertices || !indices) {
     fprintf(stderr, "Out of memory building terrain mesh\n");
-    exit(0);
+    abort();
   }
 
   int index = 0;
@@ -267,13 +267,13 @@ void writeBinaryFile(const char* file, const void* data, int size)
   FILE *f = fopen(file, "wb");
   if (!f) {
     fprintf(stderr, "error opening '%s'\n", file);
-    exit(0);
+    abort();
   }
 
   size_t bytes_written = fwrite(data, 1, size, f);
   if ((int)bytes_written != size) {
     fprintf(stderr, "error writing file '%s'\n", file);
-    exit(0);
+    abort();
   }
 
   fclose(f);
@@ -574,7 +574,7 @@ createMidpointDisplacement(struct BaseTerrain* terrain, int terrainSize, float r
   if (roughness < 0.0f)
   {
     fprintf(stderr, "%s: roughness must be positive - %f\n", __FUNCTION__, roughness);
-    exit(0);
+    abort();
   }
  
   terrain->terrainSize = terrainSize;

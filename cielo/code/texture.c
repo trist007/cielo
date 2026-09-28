@@ -162,7 +162,7 @@ generateTexture(struct GameState* gamestate, int textureSize, float minHeight, f
 
       if (red > 255.0f || green > 255.0f || blue > 255.0f) {
         printf("%d:%d: %f %f %f\n", y, x, red, green, blue);
-        exit(0);
+        abort();
       }
 
       p[0] = (unsigned char)red;
@@ -189,8 +189,8 @@ generateTexture(struct GameState* gamestate, int textureSize, float minHeight, f
   texture->width = textureSize;
   texture->bpp = bpp;
   texture->config = textureConfigDefault();
-  strncpy_s(texture->filename, 256, "texture.png", _TRUNCATE);
-  texture->filename[255] = '\0';
+  strncpy_s(texture->filename, MAX_CHAR, "texture.png", _TRUNCATE);
+  texture->filename[MAX_CHAR - 1] = '\0';
 
   bool isSRGB = false;
   
@@ -223,9 +223,10 @@ calculateTextureRegions(struct GameState* gamestate, float minHeight, float maxH
     gamestate->textureTiles[i].heightDesc.optimal = lastHeight;
     gamestate->textureTiles[i].heightDesc.high = gamestate->textureTiles[i].heightDesc.optimal + rangePerTile;
     
-    printf("Low %f Optimal %f High %f", gamestate->textureTiles[i].heightDesc.low,
-                                        gamestate->textureTiles[i].heightDesc.optimal,
-                                        gamestate->textureTiles[i].heightDesc.high);
+    printf("Low: %f Optimal: %f High: %f", gamestate->textureTiles[i].heightDesc.low,
+                                           gamestate->textureTiles[i].heightDesc.optimal,
+                                           gamestate->textureTiles[i].heightDesc.high
+    );
 
   }
 }
