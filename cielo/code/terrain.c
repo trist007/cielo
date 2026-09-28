@@ -10,6 +10,7 @@
 
 #include "terrain.h"
 #include "array2df.h"
+#include "stb_image.h"
 
 void terrainLoadHeightMapFile(BaseTerrain* terrain, const char* pFilename)
 {
@@ -83,36 +84,46 @@ void triangleListCreate(TriangleList* tl, int width, int depth, BaseTerrain* ter
   int index = 0;
   for (int z = 0; z < depth; z++) {
     for (int x = 0; x < width; x++) {
-      Vertex* v = &vertices[index++];
-      v->x = (float)x * terrain->worldScale;
-      v->y = array2Df_get(&terrain->heightMap, x, z);
-      v->z = (float)z * terrain->worldScale;
+      Vertex* vertex = &vertices[index++];
+      
+      vertex->x = (float)x * terrain->worldScale;
+      vertex->y = array2Df_get(&terrain->heightMap, x, z);
+      vertex->z = (float)z * terrain->worldScale;
+      
+
+      // Texture Coordinates
+      float size = (float)terrain->terrainSize;
+      float textureScale = terrain->textureScale;
+      vertex->u = textureScale * (float)x / size;
+      vertex->v = textureScale * (float)z / size;
     }
   }
+  
+  assert(index == numVertices);
 
   int idx = 0;
 
   for (int z = 0; z < depth - 1; z++) {
-      for (int x = 0; x < width - 1; x++) {
-          GLuint indexBottomLeft  = (GLuint)(z * width + x);
-          GLuint indexTopLeft     = (GLuint)((z + 1) * width + x);
-          GLuint indexTopRight    = (GLuint)((z + 1) * width + x + 1);
-          GLuint indexBottomRight = (GLuint)(z * width + x + 1);
+    for (int x = 0; x < width - 1; x++) {
+      GLuint indexBottomLeft  = (GLuint)(z * width + x);
+      GLuint indexTopLeft     = (GLuint)((z + 1) * width + x);
+      GLuint indexTopRight    = (GLuint)((z + 1) * width + x + 1);
+      GLuint indexBottomRight = (GLuint)(z * width + x + 1);
 
-          // top left tri
-          indices[idx++] = indexBottomLeft;
-          indices[idx++] = indexTopLeft;
-          indices[idx++] = indexTopRight;
+      // top left tri
+      indices[idx++] = indexBottomLeft;
+      indices[idx++] = indexTopLeft;
+      indices[idx++] = indexTopRight;
 
-          // bottom right tri
-          indices[idx++] = indexBottomLeft;
-          indices[idx++] = indexTopRight;
-          indices[idx++] = indexBottomRight;
-      }
+      // bottom right tri
+      indices[idx++] = indexBottomLeft;
+      indices[idx++] = indexTopRight;
+      indices[idx++] = indexBottomRight;
+    }
   }
 
   tl->numIndices = numIndices;
-
+  
   // CreateGLState
   glGenVertexArrays(1, &tl->VAO);
   glBindVertexArray(tl->VAO);
@@ -128,11 +139,16 @@ void triangleListCreate(TriangleList* tl, int width, int depth, BaseTerrain* ter
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, tl->IB);
 
   int POS_LOC = 0;
+  int TEX_LOC = 1;
   glEnableVertexAttribArray(POS_LOC);
 
   size_t numFloats = 0;
   glVertexAttribPointer(POS_LOC, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void*)(numFloats * sizeof(float)));
   numFloats += 3;
+  
+  glEnableVertexAttribArray(TEX_LOC);
+  glVertexAttribPointer(TEX_LOC, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void*)(numFloats * sizeof(float)));
+  numFloats += 2;
 
   // PopulateBuffers
   glBufferData(GL_ARRAY_BUFFER, numVertices * sizeof(Vertex), vertices, GL_STATIC_DRAW);
@@ -168,18 +184,20 @@ void triangleListDestroy(TriangleList* tl)
 char* readFile(const char* file, int* size)
 {
   FILE* file_ptr = fopen(file, "r");
-  if (!file_ptr) {
+  if (!file_ptr)
+  {
     fprintf(stderr, "unable to open file ''%s': %s\n", file, strerror(errno));
     return(NULL);
   }
 
 #ifdef _WIN32
-    struct _stat stat_buf;
-    if (_stat(file, &stat_buf) != 0) {
+  struct _stat stat_buf;
+  if (_stat(file, &stat_buf) != 0)
 #else
     struct stat stat_buf;
-    if (stat(file, &stat_buf) != 0) {
+  if (stat(file, &stat_buf) != 0)
 #endif
+  {
     fprintf(stderr, "error getting file stats for '%s': %s\n", file, strerror(errno));
     fclose(file_ptr);
     return(NULL);
@@ -209,12 +227,13 @@ char* readBinaryFile(const char* file, int* size)
   }
 
 #ifdef _WIN32
-    struct _stat stat_buf;
-    if (_stat(file, &stat_buf) != 0) {
+  struct _stat stat_buf;
+  if (_stat(file, &stat_buf) != 0)
 #else
     struct stat stat_buf;
-    if (stat(file, &stat_buf) != 0) {
+  if (stat(file, &stat_buf) != 0)
 #endif
+  {
     fprintf(stderr, "error getting file stats for '%s': %s\n", file, strerror(errno));
     fclose(file_ptr);
     return(NULL);
@@ -223,14 +242,16 @@ char* readBinaryFile(const char* file, int* size)
   *size = (int)stat_buf.st_size;
 
   char* p = (char*)malloc(*size);
-  if (!p) {
-      fprintf(stderr, "out of memory allocating %d bytes for '%s'\n", *size, file);
-      fclose(file_ptr);
-      return(NULL);
+  if (!p)
+  {
+    fprintf(stderr, "out of memory allocating %d bytes for '%s'\n", *size, file);
+    fclose(file_ptr);
+    return(NULL);
   }
 
   size_t bytes_read = fread(p, 1, *size, file_ptr);
-  if ((int)bytes_read != *size) {
+  if ((int)bytes_read != *size)
+  {
     fprintf(stderr, "read file error for '%s': %s\n", file, strerror(errno));
     free(p);
     fclose(file_ptr);
@@ -275,17 +296,17 @@ bool AddShader(GameState* gamestate, GLenum ShaderType, const char* pFilename)
   FILE* file_ptr = NULL;
 
 #ifdef _WIN32
-    errno_t err = fopen_s(&file_ptr, pFilename, "rb");
-    if (err != 0 || file_ptr == NULL) {
-        fprintf(stderr, "Error opening file error: %d\n", err);
-        return false;
-    }
+  errno_t err = fopen_s(&file_ptr, pFilename, "rb");
+  if (err != 0 || file_ptr == NULL) {
+    fprintf(stderr, "Error opening file error: %d\n", err);
+    return false;
+  }
 #else
-    file_ptr = fopen(pFilename, "rb");
-    if (!file_ptr) {
-        fprintf(stderr, "unable to open file '%s': %s\n", pFilename, strerror(errno));
-        return false;
-    }
+  file_ptr = fopen(pFilename, "rb");
+  if (!file_ptr) {
+    fprintf(stderr, "unable to open file '%s': %s\n", pFilename, strerror(errno));
+    return false;
+  }
 #endif
 
   fseek(file_ptr, 0, SEEK_END);
@@ -342,75 +363,75 @@ bool AddShader(GameState* gamestate, GLenum ShaderType, const char* pFilename)
 
 void cameraPrint(BasicCamera* camera)
 {
-    printf("Pos: (%.3f, %.3f, %.3f) Target: (%.3f, %.3f, %.3f) Up: (%.3f, %.3f, %.3f)\n",
-           camera->pos.X, camera->pos.Y, camera->pos.Z,
-           camera->target.X, camera->target.Y, camera->target.Z,
-           camera->up.X, camera->up.Y, camera->up.Z);
+  printf("Pos: (%.3f, %.3f, %.3f) Target: (%.3f, %.3f, %.3f) Up: (%.3f, %.3f, %.3f)\n",
+         camera->pos.X, camera->pos.Y, camera->pos.Z,
+         camera->target.X, camera->target.Y, camera->target.Z,
+         camera->up.X, camera->up.Y, camera->up.Z);
 }
 
 void cameraOnMouse(BasicCamera* camera, int x, int y)
 {
-    /* delta from last known mouse position drives look direction */
-    int deltaX = x - (int)camera->mousePos.X;
-    int deltaY = y - (int)camera->mousePos.Y;
+  /* delta from last known mouse position drives look direction */
+  int deltaX = x - (int)camera->mousePos.X;
+  int deltaY = y - (int)camera->mousePos.Y;
 
-    camera->mousePos.X = (float)x;
-    camera->mousePos.Y = (float)y;
+  camera->mousePos.X = (float)x;
+  camera->mousePos.Y = (float)y;
 
-    camera->AngleH += (float)deltaX / 20.0f;
-    camera->AngleV += (float)deltaY / 20.0f;
+  camera->AngleH += (float)deltaX / 20.0f;
+  camera->AngleV += (float)deltaY / 20.0f;
 
-    /* clamp vertical look so you can't flip past straight up/down */
-    if (camera->AngleV > 90.0f)  camera->AngleV = 90.0f;
-    if (camera->AngleV < -90.0f) camera->AngleV = -90.0f;
+  /* clamp vertical look so you can't flip past straight up/down */
+  if (camera->AngleV > 90.0f)  camera->AngleV = 90.0f;
+  if (camera->AngleV < -90.0f) camera->AngleV = -90.0f;
 
-    /* edge flags - useful later if you want continuous turning while the
-       mouse sits pinned at the window border */
-    camera->OnLeftEdge  = (x <= 0);
-    camera->OnRightEdge = (x >= camera->windowWidth - 1);
-    camera->OnUpperEdge = (y <= 0);
-    camera->OnLowerEdge = (y >= camera->windowHeight - 1);
+  /* edge flags - useful later if you want continuous turning while the
+     mouse sits pinned at the window border */
+  camera->OnLeftEdge  = (x <= 0);
+  camera->OnRightEdge = (x >= camera->windowWidth - 1);
+  camera->OnUpperEdge = (y <= 0);
+  camera->OnLowerEdge = (y >= camera->windowHeight - 1);
 
-    /* recompute target direction from the updated angles */
-    float horRad = ToRadian(camera->AngleH);
-    float verRad = ToRadian(camera->AngleV);
+  /* recompute target direction from the updated angles */
+  float horRad = ToRadian(camera->AngleH);
+  float verRad = ToRadian(camera->AngleV);
 
-    camera->target.X = cosf(verRad) * sinf(horRad);
-    camera->target.Y = sinf(verRad);
-    camera->target.Z = cosf(verRad) * cosf(horRad);
+  camera->target.X = cosf(verRad) * sinf(horRad);
+  camera->target.Y = sinf(verRad);
+  camera->target.Z = cosf(verRad) * cosf(horRad);
 }
 
 void cameraOnKeyboard(BasicCamera* camera, const bool* keys)
 {
-    // Forward
-    if (keys[KEY_W] || keys[KEY_UP]) {
-        camera->pos.X += camera->target.X * camera->speed;
-        camera->pos.Y += camera->target.Y * camera->speed;
-        camera->pos.Z += camera->target.Z * camera->speed;
-    }
+  // Forward
+  if (keys[KEY_W] || keys[KEY_UP]) {
+    camera->pos.X += camera->target.X * camera->speed;
+    camera->pos.Y += camera->target.Y * camera->speed;
+    camera->pos.Z += camera->target.Z * camera->speed;
+  }
 
-    // Backward
-    if (keys[KEY_S] || keys[KEY_DOWN]) {
-        camera->pos.X -= camera->target.X * camera->speed;
-        camera->pos.Y -= camera->target.Y * camera->speed;
-        camera->pos.Z -= camera->target.Z * camera->speed;
-    }
+  // Backward
+  if (keys[KEY_S] || keys[KEY_DOWN]) {
+    camera->pos.X -= camera->target.X * camera->speed;
+    camera->pos.Y -= camera->target.Y * camera->speed;
+    camera->pos.Z -= camera->target.Z * camera->speed;
+  }
 
-    // Left
-    if (keys[KEY_A] || keys[KEY_LEFT]) {
-        HMM_Vec3 left = HMM_NormV3(HMM_Cross(camera->target, camera->up));
-        camera->pos.X -= left.X * camera->speed;
-        camera->pos.Y -= left.Y * camera->speed;
-        camera->pos.Z -= left.Z * camera->speed;
-    }
+  // Left
+  if (keys[KEY_A] || keys[KEY_LEFT]) {
+    HMM_Vec3 left = HMM_NormV3(HMM_Cross(camera->target, camera->up));
+    camera->pos.X -= left.X * camera->speed;
+    camera->pos.Y -= left.Y * camera->speed;
+    camera->pos.Z -= left.Z * camera->speed;
+  }
 
-    // Right
-    if (keys[KEY_D] || keys[KEY_RIGHT]) {
-        HMM_Vec3 right = HMM_NormV3(HMM_Cross(camera->target, camera->up));
-        camera->pos.X += right.X * camera->speed;
-        camera->pos.Y += right.Y * camera->speed;
-        camera->pos.Z += right.Z * camera->speed;
-    }
+  // Right
+  if (keys[KEY_D] || keys[KEY_RIGHT]) {
+    HMM_Vec3 right = HMM_NormV3(HMM_Cross(camera->target, camera->up));
+    camera->pos.X += right.X * camera->speed;
+    camera->pos.Y += right.Y * camera->speed;
+    camera->pos.Z += right.Z * camera->speed;
+  }
 }
 
 int
@@ -444,45 +465,45 @@ generateRandomTerrainPoints(int terrainSize, struct TerrainPoint* p1, struct Ter
 
 float FIRFilterSinglePoint(Array2Df* heightMap, int x, int z, float prevVal, float filter)
 {
-    float curVal = array2Df_get(heightMap, x, z);
-    float newVal = filter * prevVal + (1 - filter) * curVal;
-    array2Df_set(heightMap, x, z, newVal);
-    return newVal;
+  float curVal = array2Df_get(heightMap, x, z);
+  float newVal = filter * prevVal + (1 - filter) * curVal;
+  array2Df_set(heightMap, x, z, newVal);
+  return newVal;
 }
 
 void applyFIRFilter(Array2Df* heightMap, int terrainSize, float filter)
 {
-    // left to right
-    for (int z = 0; z < terrainSize; z++) {
-        float prevVal = array2Df_get(heightMap, 0, z);
-        for (int x = 1; x < terrainSize; x++) {
-            prevVal = FIRFilterSinglePoint(heightMap, x, z, prevVal, filter);
-        }
+  // left to right
+  for (int z = 0; z < terrainSize; z++) {
+    float prevVal = array2Df_get(heightMap, 0, z);
+    for (int x = 1; x < terrainSize; x++) {
+      prevVal = FIRFilterSinglePoint(heightMap, x, z, prevVal, filter);
     }
+  }
 
-    // right to left
-    for (int z = 0; z < terrainSize; z++) {
-        float prevVal = array2Df_get(heightMap, terrainSize - 1, z);
-        for (int x = terrainSize - 2; x >= 0; x--) {
-            prevVal = FIRFilterSinglePoint(heightMap, x, z, prevVal, filter);
-        }
+  // right to left
+  for (int z = 0; z < terrainSize; z++) {
+    float prevVal = array2Df_get(heightMap, terrainSize - 1, z);
+    for (int x = terrainSize - 2; x >= 0; x--) {
+      prevVal = FIRFilterSinglePoint(heightMap, x, z, prevVal, filter);
     }
+  }
 
-    // bottom to top
-    for (int x = 0; x < terrainSize; x++) {
-        float prevVal = array2Df_get(heightMap, x, 0);
-        for (int z = 1; z < terrainSize; z++) {
-            prevVal = FIRFilterSinglePoint(heightMap, x, z, prevVal, filter);
-        }
+  // bottom to top
+  for (int x = 0; x < terrainSize; x++) {
+    float prevVal = array2Df_get(heightMap, x, 0);
+    for (int z = 1; z < terrainSize; z++) {
+      prevVal = FIRFilterSinglePoint(heightMap, x, z, prevVal, filter);
     }
+  }
 
-    // top to bottom
-    for (int x = 0; x < terrainSize; x++) {
-        float prevVal = array2Df_get(heightMap, x, terrainSize - 1);
-        for (int z = terrainSize - 2; z >= 0; z--) {
-            prevVal = FIRFilterSinglePoint(heightMap, x, z, prevVal, filter);
-        }
+  // top to bottom
+  for (int x = 0; x < terrainSize; x++) {
+    float prevVal = array2Df_get(heightMap, x, terrainSize - 1);
+    for (int z = terrainSize - 2; z >= 0; z--) {
+      prevVal = FIRFilterSinglePoint(heightMap, x, z, prevVal, filter);
     }
+  }
 }
 
 void
@@ -550,26 +571,26 @@ createFaultFormation(struct BaseTerrain* terrain, int terrainSize, int iteration
 void
 createMidpointDisplacement(struct BaseTerrain* terrain, int terrainSize, float roughness, float minHeight, float maxHeight)
 {
- if (roughness < 0.0f)
- {
-  fprintf(stderr, "%s: roughness must be positive - %f\n", __FUNCTION__, roughness);
-  exit(0);
- }
+  if (roughness < 0.0f)
+  {
+    fprintf(stderr, "%s: roughness must be positive - %f\n", __FUNCTION__, roughness);
+    exit(0);
+  }
  
- terrain->terrainSize = terrainSize;
+  terrain->terrainSize = terrainSize;
 
- glUseProgram(terrain->shaderProg);
- glUniform1f(terrain->minHeightLoc, minHeight);
- glUniform1f(terrain->maxHeightLoc, maxHeight);
+  glUseProgram(terrain->shaderProg);
+  glUniform1f(terrain->minHeightLoc, minHeight);
+  glUniform1f(terrain->maxHeightLoc, maxHeight);
 
- array2Df_initFill(&terrain->heightMap, terrainSize, terrainSize, 0.0f);
- createMidpointDisplacementF32(terrain, terrainSize, roughness);
+  array2Df_initFill(&terrain->heightMap, terrainSize, terrainSize, 0.0f);
+  createMidpointDisplacementF32(terrain, terrainSize, roughness);
 
- float actualMin, actualMax;
- array2Df_getMinMax(&terrain->heightMap, &actualMin, &actualMax);
+  float actualMin, actualMax;
+  array2Df_getMinMax(&terrain->heightMap, &actualMin, &actualMax);
 
- array2Df_normalize(&terrain->heightMap, minHeight, maxHeight);
- triangleListCreate(&terrain->triangleList, terrainSize, terrainSize, terrain);
+  array2Df_normalize(&terrain->heightMap, minHeight, maxHeight);
+  triangleListCreate(&terrain->triangleList, terrainSize, terrainSize, terrain);
 }
 
 void
@@ -624,72 +645,71 @@ diamondStep(int terrainSize, Array2Df* heightMap, int rectSize, float currentHei
 void
 squareStep(int terrainSize, Array2Df* heightMap, int rectSize, float currentHeight)
 {
- int halfRectSize = rectSize / 2;
+  int halfRectSize = rectSize / 2;
 
- for (int y = 0; y < terrainSize; y += rectSize)
- {
-  for (int x = 0; x < terrainSize; x += rectSize)
+  for (int y = 0; y < terrainSize; y += rectSize)
   {
-   int nextX = (x + rectSize) % terrainSize;
-   int nextY = (y + rectSize) % terrainSize;
+    for (int x = 0; x < terrainSize; x += rectSize)
+    {
+      int nextX = (x + rectSize) % terrainSize;
+      int nextY = (y + rectSize) % terrainSize;
 
-   // deal with wrap around
-   if (nextX < x) nextX = terrainSize - 1;
-   if (nextY < y) nextY = terrainSize - 1;
+      // deal with wrap around
+      if (nextX < x) nextX = terrainSize - 1;
+      if (nextY < y) nextY = terrainSize - 1;
       
-   int midX = x + halfRectSize;
-   int midY = y + halfRectSize;
+      int midX = x + halfRectSize;
+      int midY = y + halfRectSize;
 
-   int prevMidX = (x - halfRectSize + terrainSize) % terrainSize;
-   int prevMidY = (y - halfRectSize + terrainSize) % terrainSize;
+      int prevMidX = (x - halfRectSize + terrainSize) % terrainSize;
+      int prevMidY = (y - halfRectSize + terrainSize) % terrainSize;
       
-   float currentTopLeft    = array2Df_get(heightMap, x, y);
-   float currentTopRight   = array2Df_get(heightMap, nextX, y);
-   float currentCenter     = array2Df_get(heightMap, midX, midY);
-   float previousYCenter   = array2Df_get(heightMap, midX, prevMidY);
-   float currentBottomLeft = array2Df_get(heightMap, x, nextY);
-   float previousXCenter   = array2Df_get(heightMap, prevMidX, midY);
+      float currentTopLeft    = array2Df_get(heightMap, x, y);
+      float currentTopRight   = array2Df_get(heightMap, nextX, y);
+      float currentCenter     = array2Df_get(heightMap, midX, midY);
+      float previousYCenter   = array2Df_get(heightMap, midX, prevMidY);
+      float currentBottomLeft = array2Df_get(heightMap, x, nextY);
+      float previousXCenter   = array2Df_get(heightMap, prevMidX, midY);
 
-   float currentLeftMid = (currentTopLeft + currentCenter + currentBottomLeft + previousXCenter) / 4.0f + randomFloatRange(-currentHeight, currentHeight);
-   float currentTopMid = (currentTopLeft + currentCenter + currentTopRight + previousYCenter) / 4.0f + randomFloatRange(-currentHeight, currentHeight);
+      float currentLeftMid = (currentTopLeft + currentCenter + currentBottomLeft + previousXCenter) / 4.0f + randomFloatRange(-currentHeight, currentHeight);
+      float currentTopMid = (currentTopLeft + currentCenter + currentTopRight + previousYCenter) / 4.0f + randomFloatRange(-currentHeight, currentHeight);
    
-   array2Df_set(heightMap, midX, y, currentTopMid);
-   array2Df_set(heightMap, x, midY, currentLeftMid);
+      array2Df_set(heightMap, midX, y, currentTopMid);
+      array2Df_set(heightMap, x, midY, currentLeftMid);
+    }
   }
- }
 }
 
 float randomFloatRange(float min, float max)
 {
- float result = 0.0f;
+  float result = 0.0f;
 
- float scale = (float)rand() / (float)RAND_MAX;
+  float scale = (float)rand() / (float)RAND_MAX;
  
- result = min + scale * (max - min);
+  result = min + scale * (max - min);
  
- return(result);
+  return(result);
 }
 
 int
 isValuePowerOfTwo(int n)
 {
- if ((n & (n - 1)) == 0)
-  return 1;
- else
-  return 0;
+  if ((n & (n - 1)) == 0)
+    return 1;
+  else
+    return 0;
 }
 
 int
 calcNextPowerOfTwo(int value)
 {
- if (value == 0) return 0;
- if (value < 0) return 0;
+  if (value == 0) return 0;
+  if (value < 0) return 0;
 
- int result = value;
- while (!isValuePowerOfTwo(result))
- {
-  result++;
- }
- return (result);
+  int result = value;
+  while (!isValuePowerOfTwo(result))
+  {
+    result++;
+  }
+  return (result);
 }
-

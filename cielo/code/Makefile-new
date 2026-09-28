@@ -1,0 +1,75 @@
+# ---- Flags (MSVC -> clang translation) ----
+# /std:c17         -> -std=c17
+# /Zc:__STDC__     -> default on clang, no flag needed
+# /MD              -> dynamic CRT is the default on Linux, no flag needed
+# -fp:fast         -> -ffast-math
+# -Od              -> -O0
+# -WX -W4          -> -Werror -Wall -Wextra
+# -wd4XXX          -> matching -Wno-* where an equivalent exists
+# -Z7 -FC          -> -g (embed debug info, clang always emits full paths)
+
+CC=clang
+
+UNAME_S := $(shell uname -s)
+
+CFLAGS := -std=c17 -ffast-math -O0 -g -Werror -Wall -Wextra \
+    -Wno-unused-parameter \
+    -Wno-unused-variable \
+    -Wno-unused-but-set-variable \
+    -Wno-sign-compare \
+    -Wno-deprecated-declarations \
+    -Wno-uninitialized \
+    $(INCLUDES)
+
+# ---- Libraries ----
+# meshoptimizer.lib -> -lmeshoptimizer
+# opengl32.lib      -> -lGL (Linux) / -framework OpenGL (macOS)
+# user32.lib/gdi32.lib have no Linux/macOS equivalent; they were pulled in
+# for Win32 window/GDI plumbing. platform.c/.m talks to X11+EGL (Linux) or
+# Cocoa+NSOpenGL (macOS) instead.
+
+ifeq ($(UNAME_S),Darwin)
+    # macOS: platform_macos.m (Objective-C) replaces platform.c.
+    # GL_SILENCE_DEPRECATION quiets the "OpenGL is deprecated" header
+    # warnings on top of -Wno-deprecated-declarations above.
+    CFLAGS  += -DGL_SILENCE_DEPRECATION
+    LDFLAGS := -L$(VCPKG_LIB) -L$(LIB_DIR) -framework Cocoa -framework OpenGL -lm
+    SRCS    := gl_load.c platform_macos.m terrain_demo1.c terrain.c
+else
+    LDFLAGS := -L$(VCPKG_LIB) -L$(LIB_DIR) -lGL -lEGL -lX11 -lxcb -lm
+    # LDFLAGS := -L$(VCPKG_LIB) -L$(LIB_DIR) -lGL -lEGL -lX11 -lxcb -lwayland-client -lwayland-egl -lxkbcommon -lm
+    SRCS    := gl_load.c platform.c terrain_demo1.c terrain.c
+endif
+
+OBJS := $(patsubst %.c,%.o,$(patsubst %.m,%.o,$(SRCS)))
+
+TARGET := terrain
+BUILD_COUNT_FILE := build_count.txt
+
+.PHONY: all clean
+
+all: buildcount $(TARGET)
+
+buildcount:
+	@if [ ! -f $(BUILD_COUNT_FILE) ]; then echo 0 > $(BUILD_COUNT_FILE); fi
+	@count=$$(cat $(BUILD_COUNT_FILE)); \
+	count=$$((count + 1)); \
+	echo $$count > $(BUILD_COUNT_FILE); \
+	echo "BUILD #$$count"; \
+	echo "cwd: $$(pwd)"
+
+$(TARGET): $(OBJS)
+	@echo "[MAIN] Linking $(TARGET)..."
+	$(CC) -o $(TARGET) $(OBJS) $(LDFLAGS)
+	@echo "[MAIN] $(TARGET) built with OpenGL."
+
+%.o: %.c
+	@echo "[MAIN] Compiling $<..."
+	$(CC) -c $(CFLAGS) -o $@ $
+
+%.o: %.m
+	@echo "[MAIN] Compiling $< (Objective-C)..."
+	$(CC) -c $(CFLAGS) -o $@ $
+
+clean:
+	rm -f $(OBJS) $(TARGET) $(BUILD_COUNT_FILE)

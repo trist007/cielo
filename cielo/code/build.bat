@@ -11,7 +11,9 @@ echo cwd: %CD%
 
 set INCLUDES=/I.
 
-set CommonCompilerFlags=/utf-8 /std:c17 /Zc:__STDC__ /EHsc ^
+REM /std:c17
+
+set CommonCompilerFlags=/utf-8 /Zc:__STDC__ /EHsc ^
     /MD -nologo -fp:fast -Gm- -Od -Oi -WX -W4 ^
     -wd4202 -wd4100 -wd4189 -wd4244 -wd4996 -wd4456 -wd4324 -wd4505 -wd4267 -wd5287 -FC -Z7 ^
     -wd4701 ^
@@ -29,14 +31,15 @@ REM ── MAIN EXE ────────────────────
         .\gl_load.c ^
         .\platform.c ^
         .\terrain_demo1.c ^
-        .\terrain.c
+        .\terrain.c ^
+        .\texture.c
     if %errorlevel% neq 0 ( echo [MAIN] compile failed & goto end )
 
     echo [MAIN] Linking terrain.exe...
     link /INCREMENTAL:NO /OPT:REF /DEBUG ^
         /PDB:terrain.pdb ^
         /out:terrain.exe ^
-        gl_load.obj platform.obj terrain_demo1.obj terrain.obj ^
+        gl_load.obj platform.obj terrain_demo1.obj terrain.obj texture.obj ^
         %LDFLAGS%
     if %errorlevel% neq 0 ( echo [MAIN] link failed & goto end )
 

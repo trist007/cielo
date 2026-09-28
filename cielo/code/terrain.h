@@ -7,6 +7,7 @@
 #include "HandmadeMath.h"
 #include <stdbool.h>
 #include "array2df.h"
+#include "texture.h"
 
 #include "GL/glcorearb.h"
 
@@ -20,9 +21,10 @@
 #define ToRadian(x) (float)(((x) * PI / 180.0f))
 #define ToDegree(x) (float)(((x) * 180.0f / PI ))
 
-
 typedef struct Vertex {
-    GLfloat x, y, z;
+  GLfloat x, y, z;
+  GLfloat u, v;
+  
 } Vertex;
 
 typedef struct TriangleList TriangleList;
@@ -43,6 +45,7 @@ struct BaseTerrain
   GLuint       maxHeightLoc;
   GLint        VPLoc;
   float        worldScale;
+  float        textureScale;
 
   int          terrainSize;
   Array2Df     heightMap;
@@ -122,18 +125,21 @@ struct BasicCamera
 typedef struct GameState GameState;
 struct GameState
 {
-    PlatformWindow*  window;
-    BasicCamera gameCamera;
-    bool isWireframe;
+  PlatformWindow*  window;
+  BasicCamera gameCamera;
+  bool isWireframe;
 
-    GLuint shaderProg;
-    GLuint shaderList[MAX_SHADERS];
-    int    shaderCount;
+  GLuint shaderProg;
+  GLuint shaderList[MAX_SHADERS];
+  int    shaderCount;
+  
+  char   textureFile[4][256];
+  struct Texture texture[4];
 
-    GLuint VPLoc;
-    PersProjInfo persProjInfo;
+  GLuint VPLoc;
+  PersProjInfo persProjInfo;
 
-    struct BaseTerrain terrain;
+  struct BaseTerrain terrain;
 };
 
 void  initBasicCamera(BasicCamera *gameCamera, PersProjInfo pers, HMM_Vec3 Pos, HMM_Vec3 Target, HMM_Vec3 Up);

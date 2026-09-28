@@ -5,6 +5,7 @@
 #include <math.h>
 
 #include "terrain.h"
+#include "texture.h"
 #include "HandmadeMath.h"
 
 static void processInput(PlatformWindow* window, GameState* gs)
@@ -82,6 +83,7 @@ int main(int argc, char** argv)
     return 1;
   }
 
+  // Create Window
   gamestate->window = platform_create_window(WINDOW_WIDTH, WINDOW_HEIGHT, "Terrain Rendering");
   if (!gamestate->window) {
     fprintf(stderr, "Failed to create window\n");
@@ -146,35 +148,71 @@ int main(int argc, char** argv)
   gamestate->terrain.shaderProg = gamestate->shaderProg;
   gamestate->terrain.VPLoc      = gamestate->VPLoc;
 
-  // camera
-  HMM_Vec3 Pos = {{100.0f, 220.0f, -400.0f}};
+  // Create Camera
+  HMM_Vec3 Pos = {{250.0f, 450.0f, -150.0f}};
   HMM_Vec3 Target = {{0.0f, -0.25f, 1.0f}};
   HMM_Vec3 Up = {{0.0f, 1.0f, 0.0f}};
 
   float FOV = 45.0f;
   float zNear = 0.1f;
-  float zFar = 2000.0f;
-
+  float zFar = 5000.0f;
   gamestate->persProjInfo = (PersProjInfo){ FOV, (float)WINDOW_WIDTH, (float)WINDOW_HEIGHT, zNear, zFar };
 
   initBasicCamera(&gamestate->gameCamera, gamestate->persProjInfo, Pos, Target, Up);
 
-  float WorldScale = 4.0f;
-  gamestate->terrain.worldScale = 4.0f;
+  // Create Terrain
+  float WorldScale                = 2.0f;
+  float TextureScale              = 4.0f;
+  gamestate->terrain.worldScale   = WorldScale;
+  gamestate->terrain.textureScale = TextureScale;
+  
+  // Load Textures
+#if defined(_WIN32)
+  strncpy_s(gamestate->textureFile[0], 256, "../assets/textures/IMGP5525_seamless.jpg", _TRUNCATE);
+  strncpy_s(gamestate->textureFile[1], 256, "../assets/textures/IMGP5487_seamless.jpg", _TRUNCATE);
+  strncpy_s(gamestate->textureFile[2], 256, "../assets/textures/tilable-IMG_0044-verydark.png", _TRUNCATE);
+  strncpy_s(gamestate->textureFile[3], 256, "../assets/textures/water.png", _TRUNCATE);
+#else
+  strncpy(gamestate->textures[0], "../assets/textures/IMGP5525_seamless.jpg", 255);
+  gamestate->textures[0][255] = '\0';
+  strncpy(gamestate->textures[1], "../assets/textures/IMGP5487_seamless.jpg", 255);
+  gamestate->textures[1][255] = '\0';
+  strncpy(gamestate->textures[2], "../assets/textures/tilable-IMG_0044-verydark.png", 255);
+  gamestate->textures[2][255] = '\0';
+  strncpy(gamestate->textures[3], "../assets/textures/water.png", 255);
+  gamestate->textures[3][255] = '\0';
+#endif
+  
+  // Load Textures
+  for (int i = 0; i < 4; i++)
+  {
+    if (!textureLoad(&gamestate->texture[i], GL_TEXTURE_2D, gamestate->textureFile[i]))
+    {
+      fprintf(stderr, "ERROR: unable to load texture %d: %s\n", i, gamestate->textureFile[i]);
+      abort();
+    }
+  }
 
-  // init terrain, init BaseTerrain
-  // terrainLoadFromFile(&gamestate->terrain, "..\\data\\heightmap.save");
-  int size = 256;
-  int iterations = 500;
-  float minHeight = 0.0f;
-  float maxHeight = 300.0f;
-  float filter = 0.5f;
+  // Init Terrain
+  int   size       = 512;
+  int   iterations = 500;
+  float minHeight  = 0.0f;
+  float maxHeight  = 300.0f;
+  float filter     = 0.5f;
   
   // NOTE(trist007): this will smoothen out peaks, at 0.5f the peaks are sharp, at 2.0f they are super round
   float roughness = 1.0f;
 
   gamestate->terrain.minHeightLoc = getUniformLocation(gamestate, "gMinHeight");
   gamestate->terrain.maxHeightLoc = getUniformLocation(gamestate, "gMaxHeight");
+     
+  // Bind Textures
+  for (int i = 0; i < 4; i++)
+  {
+    glActiveTexture(GL_TEXTURE0 + i);
+    glBindTexture(GL_TEXTURE_2D, gamestate->texture[i].textureObj);
+  }
+
 
   // createFaultFormation(&gamestate->terrain, size, iterations, minHeight, maxHeight, filter);
   createMidpointDisplacement(&gamestate->terrain, size, roughness, minHeight, maxHeight);
@@ -189,7 +227,6 @@ int main(int argc, char** argv)
 
   while (!platform_window_should_close(gamestate->window))
   {
-    
     platform_poll_events(gamestate->window);
     processInput(gamestate->window, gamestate);
 

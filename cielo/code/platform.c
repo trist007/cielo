@@ -6,6 +6,10 @@
 
 #include "platform_x11.c"
 
+#elif defined (__APPLE__)
+
+#include "platform_mac.c"
+
 #else
 #error "Platform not implemented"
 #endif

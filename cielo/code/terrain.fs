@@ -3,9 +3,12 @@
 layout(location = 0) out vec4 FragColor;
 
 in vec4 Color;
+in vec2 Tex;
 
+uniform sampler2D gTerrainTexture;
 
 void main()
 {
-    FragColor = Color;
+    vec4 TexColor = texture(gTerrainTexture, Tex);
+    FragColor = Color *TexColor;
 }
