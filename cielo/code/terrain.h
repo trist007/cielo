@@ -45,7 +45,7 @@ struct BaseTerrain
   GLuint       shaderProg;
   GLuint       minHeightLoc;
   GLuint       maxHeightLoc;
-  GLint        VPLoc;
+  GLuint       VPLoc;
   float        worldScale;
   float        textureScale;
 
@@ -65,7 +65,7 @@ typedef struct FaultFormationTerrain FaultFormationTerrain;
 struct FaultFormationTerrain
 {
   GLuint       shaderProg;
-  GLint        VPLoc;
+  GLuint       VPLoc;
   float        worldScale;
 
   int          terrainSize;
@@ -79,7 +79,7 @@ typedef struct MidpointDisplacementTerrain MidpointDisplacementTerrain;
 struct MidpointDisplacementTerrain
 {
   GLuint       shaderProg;
-  GLint        VPLoc;
+  GLuint       VPLoc;
   float        worldScale;
 
   int          terrainSize;
@@ -147,16 +147,16 @@ struct GameState
   struct BaseTerrain terrain;
 };
 
-void  initBasicCamera(BasicCamera *gameCamera, PersProjInfo pers, HMM_Vec3 Pos, HMM_Vec3 Target, HMM_Vec3 Up);
-GLint getUniformLocation(GameState* gamestate, const char* pUniformName);
-void  terrainLoadHeightMapFile(BaseTerrain* terrain, const char* pFilename);
-void  terrainLoadFromFile(BaseTerrain* terrain, const char* pFilename);
-void  renderScene(BaseTerrain* terrain, const BasicCamera* camera);
+void   initBasicCamera(BasicCamera *gameCamera, PersProjInfo pers, HMM_Vec3 Pos, HMM_Vec3 Target, HMM_Vec3 Up);
+GLuint getUniformLocation(GameState* gamestate, const char* pUniformName);
+void   terrainLoadHeightMapFile(BaseTerrain* terrain, const char* pFilename);
+void   terrainLoadFromFile(BaseTerrain* terrain, const char* pFilename);
+void   renderScene(BaseTerrain* terrain, const BasicCamera* camera);
 
-void createFaultFormationInternal(Array2Df* heightMap, int terrainSize, int interations, float minHeight, float maxHeight, float filter);
-void createFaultFormation(struct BaseTerrain* terrain, int terrainSize, int interations, float minHeight, float maxHeight, float filter);
-void generateRandomTerrainPoints(int terrainSize, struct TerrainPoint* p1, struct TerrainPoint* p2);
-int  areTerrainPointsEqual(struct TerrainPoint* p1, struct TerrainPoint* p2);
+void  createFaultFormationInternal(Array2Df* heightMap, int terrainSize, int interations, float minHeight, float maxHeight, float filter);
+void  createFaultFormation(struct BaseTerrain* terrain, int terrainSize, int interations, float minHeight, float maxHeight, float filter);
+void  generateRandomTerrainPoints(int terrainSize, struct TerrainPoint* p1, struct TerrainPoint* p2);
+int   areTerrainPointsEqual(struct TerrainPoint* p1, struct TerrainPoint* p2);
 float getHeight(BaseTerrain* terrain, int x, int z);
 float getHeightInterpolated(BaseTerrain* terrain, float x, float z);
 

@@ -59,6 +59,7 @@ initTerrainMultiTextures(GameState* gamestate)
   // Bind Textures
   for (int i = 0; i < 4; i++)
   {
+    // Activate texture and bind
     glActiveTexture(GL_TEXTURE0 + i);
     glBindTexture(GL_TEXTURE_2D, gamestate->texture[i].textureObj);
   }
@@ -76,15 +77,21 @@ initTerrainTextureGenerator(GameState* gamestate)
   gamestate->terrain.textureScale = TextureScale;
 
   int   size       = 512;
+  float roughness  = 1.0f;
   int   iterations = 500;
   float minHeight  = 0.0f;
-  float maxHeight  = 300.0f;
+  float maxHeight  = 156.0f;
   float filter     = 0.5f;
+  
+  gamestate->terrain.minHeightLoc = getUniformLocation(gamestate, "gMinHeight");
+  gamestate->terrain.maxHeightLoc = getUniformLocation(gamestate, "gMaxHeight");
 
-  loadTile(&gamestate->numTextureTiles, &gamestate->textureTiles[gamestate->numTextureTiles], "../assets/textures/rock02_2.jpg");
-  loadTile(&gamestate->numTextureTiles, &gamestate->textureTiles[gamestate->numTextureTiles], "../assets/textures/rock01.jpg");
-  loadTile(&gamestate->numTextureTiles, &gamestate->textureTiles[gamestate->numTextureTiles], "../assets/textures/tilable-IMG_0044-verydark.png");
-  loadTile(&gamestate->numTextureTiles, &gamestate->textureTiles[gamestate->numTextureTiles], "../assets/textures/water.png");
+  createMidpointDisplacement(&gamestate->terrain, size, roughness, minHeight, maxHeight);
+
+  loadTile(&gamestate->numTextureTiles, gamestate->textureTiles, "../assets/textures/rock02_2.jpg");
+  loadTile(&gamestate->numTextureTiles, gamestate->textureTiles, "../assets/textures/rock01.jpg");
+  loadTile(&gamestate->numTextureTiles, gamestate->textureTiles, "../assets/textures/tilable-IMG_0044-verydark.png");
+  loadTile(&gamestate->numTextureTiles, gamestate->textureTiles, "../assets/textures/water.png");
   
   int textureSize = 1024;
   
@@ -94,24 +101,24 @@ initTerrainTextureGenerator(GameState* gamestate)
 
 static void processInput(PlatformWindow* window, GameState* gs)
 {
-    // Exit – continuous is fine, or use just_pressed
-    if (platform_key_down(window, KEY_ESC) || platform_key_down(window, KEY_Q))
-        platform_window_close(window);
+  // Exit – continuous is fine, or use just_pressed
+  if (platform_key_down(window, KEY_ESC) || platform_key_down(window, KEY_Q))
+    platform_window_close(window);
 
-    // One-shot actions
-    if (platform_key_just_pressed(window, KEY_C))
-        cameraPrint(&gs->gameCamera);
+  // One-shot actions
+  if (platform_key_just_pressed(window, KEY_C))
+    cameraPrint(&gs->gameCamera);
 
-    if (platform_key_just_pressed(window, KEY_F)) {   // better key than W
-        gs->isWireframe = !gs->isWireframe;
-        glPolygonMode(GL_FRONT_AND_BACK, gs->isWireframe ? GL_LINE : GL_FILL);
-    }
+  if (platform_key_just_pressed(window, KEY_F)) {   // better key than W
+    gs->isWireframe = !gs->isWireframe;
+    glPolygonMode(GL_FRONT_AND_BACK, gs->isWireframe ? GL_LINE : GL_FILL);
+  }
 
-    // Continuous movement
-    cameraOnKeyboard(&gs->gameCamera, window->keys);
+  // Continuous movement
+  cameraOnKeyboard(&gs->gameCamera, window->keys);
 
-    // Mouse
-    cameraOnMouse(&gs->gameCamera, window->mouseX, window->mouseY);
+  // Mouse
+  cameraOnMouse(&gs->gameCamera, window->mouseX, window->mouseY);
 }
 
 static HMM_Vec3 normalizeFloat3(HMM_Vec3 vector)
@@ -156,38 +163,46 @@ int main(int argc, char** argv)
   (void)argc; (void)argv;
 
   struct GameState* gamestate = (GameState*)calloc(1, sizeof(GameState));
-  if (!gamestate) {
+  if (!gamestate)
+  {
     fprintf(stderr, "unable to allocate memory for gamestate\n");
-    return(1);
+    abort();
   }
 
   // --- Platform init ---
-  if (platform_init() < 0) {
+  if (platform_init() < 0)
+  {
     fprintf(stderr, "platform_init failed\n");
-    return 1;
+    abort();
   }
 
   // Create Window
   gamestate->window = platform_create_window(WINDOW_WIDTH, WINDOW_HEIGHT, "Terrain Rendering");
-  if (!gamestate->window) {
+  if (!gamestate->window)
+  {
     fprintf(stderr, "Failed to create window\n");
-    return 1;
+    abort();
   }
 
   // Load OpenGL functions (GLAD) AFTER the context is current
-  if (!gl_load_all((GL_get_proc_address)platform_get_proc_address)) {
+  if (!gl_load_all((GL_get_proc_address)platform_get_proc_address))
+  {
     fprintf(stderr, "Failed to load OpenGL functions\n");
-    return 1;
+    abort();
   }
 
   gamestate->shaderProg = glCreateProgram();
 
-  if (!AddShader(gamestate, GL_VERTEX_SHADER, "terrain.vs")) {
-      return(0);
+  if (!AddShader(gamestate, GL_VERTEX_SHADER, "terrain.vs"))
+  {
+    fprintf(stderr, "ERROR: failed to AddShader terrain.vs\n");
+    abort();
   }
 
-  if (!AddShader(gamestate, GL_FRAGMENT_SHADER, "terrain.fs")) {
-      return(0);
+  if (!AddShader(gamestate, GL_FRAGMENT_SHADER, "terrain.fs"))
+  {
+    fprintf(stderr, "ERROR: failed to AddShader terrain.fs\n");
+    abort();
   }
 
   GLint Success = 0;
@@ -199,9 +214,9 @@ int main(int argc, char** argv)
   glGetProgramiv(gamestate->shaderProg, GL_LINK_STATUS, &Success);
 
   if (Success == 0) {
-      glGetProgramInfoLog(gamestate->shaderProg, sizeof(ErrorLog), NULL, ErrorLog);
-      fprintf(stderr, "Error linking shader program: '%s'\n", ErrorLog);
-      return(0);
+    glGetProgramInfoLog(gamestate->shaderProg, sizeof(ErrorLog), NULL, ErrorLog);
+    fprintf(stderr, "Error linking shader program: '%s'\n", ErrorLog);
+    abort();
   }
 
   // validate program
@@ -211,9 +226,9 @@ int main(int argc, char** argv)
   glGetProgramiv(gamestate->shaderProg, GL_VALIDATE_STATUS, &Success);
 
   if (Success == 0) {
-      glGetProgramInfoLog(gamestate->shaderProg, sizeof(ErrorLog), NULL, ErrorLog);
-      fprintf(stderr, "Invalid shader program: '%s'\n", ErrorLog);
-      return(0);
+    glGetProgramInfoLog(gamestate->shaderProg, sizeof(ErrorLog), NULL, ErrorLog);
+    fprintf(stderr, "Invalid shader program: '%s'\n", ErrorLog);
+    abort();
   }
 
   // now that shaders are in memory we can delete
@@ -226,7 +241,7 @@ int main(int argc, char** argv)
 
   if (gamestate->VPLoc == INVALID_UNIFORM_LOCATION) {
     free(gamestate);
-    return(1);
+    abort();
   }
   
   gamestate->terrain.shaderProg = gamestate->shaderProg;
@@ -266,11 +281,11 @@ int main(int argc, char** argv)
   }
 
   // shutdown
-  for (int i = 0; i < MAX_TEXTURE_TILES; i++)
-  {
+  for (int i = 0; i < gamestate->numTextureTiles; i++)
     unLoadSTBImage(&gamestate->textureTiles[i].image);
+  
+  for (int i = 0; i < gamestate->numTextures; i++)
     glDeleteTextures(1, &gamestate->texture[i].textureObj);
-  }
 
   free(gamestate->terrain.heightMap.data);
   gamestate->terrain.heightMap.data = NULL;

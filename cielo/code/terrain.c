@@ -279,9 +279,9 @@ void writeBinaryFile(const char* file, const void* data, int size)
   fclose(f);
 }
 
-GLint getUniformLocation(GameState* gamestate, const char* pUniformName)
+GLuint getUniformLocation(GameState* gamestate, const char* pUniformName)
 {
-  GLint Location = glGetUniformLocation(gamestate->shaderProg, pUniformName);
+  GLuint Location = glGetUniformLocation(gamestate->shaderProg, pUniformName);
 
   if (Location == -1) {
     fprintf(stderr, "Warning! Unable to get the location of uniform '%s'\n", pUniformName);

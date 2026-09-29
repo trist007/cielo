@@ -195,6 +195,12 @@ generateTexture(struct GameState* gamestate, int textureSize, float minHeight, f
   bool isSRGB = false;
   
   textureLoadInternal(texture, pTextureData, isSRGB);
+  
+  // Activate texture and bind
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, texture->textureObj);
+  
+  gamestate->numTextures++;
 
   free(pTextureData);
 }
@@ -223,9 +229,9 @@ calculateTextureRegions(struct GameState* gamestate, float minHeight, float maxH
     gamestate->textureTiles[i].heightDesc.optimal = lastHeight;
     gamestate->textureTiles[i].heightDesc.high = gamestate->textureTiles[i].heightDesc.optimal + rangePerTile;
     
-    printf("Low: %f Optimal: %f High: %f", gamestate->textureTiles[i].heightDesc.low,
-                                           gamestate->textureTiles[i].heightDesc.optimal,
-                                           gamestate->textureTiles[i].heightDesc.high
+    printf("Low: %f\t Optimal: %f\t High: %f\n", gamestate->textureTiles[i].heightDesc.low,
+                                                 gamestate->textureTiles[i].heightDesc.optimal,
+                                                 gamestate->textureTiles[i].heightDesc.high
     );
 
   }
