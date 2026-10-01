@@ -4,6 +4,7 @@
 #include "platform.h"
 #include "gl_load.h"
 
+#define MAX_CHAR 256
 
 #include <stdbool.h>
 
@@ -24,7 +25,7 @@ typedef struct GLTextureConfig {
 typedef struct Texture {
   GLuint textureObj;
   GLenum textureTarget;
-  char filename[256];
+  char filename[MAX_CHAR];
   int width, height, bpp;
   
   GLTextureConfig config;
@@ -38,6 +39,7 @@ typedef struct TextureHeightDesc {
 typedef struct STBImage {
   int width, height, bpp;
   unsigned char* imageData;
+  char name[256];
 } STBImage;
 
 typedef struct TextureTile {

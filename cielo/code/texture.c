@@ -24,14 +24,29 @@ loadSTBImage(STBImage* stb, const char* filename)
     abort();
   }
   
+  strncpy_s(stb->name, MAX_CHAR, filename, _TRUNCATE);
+  stb->name[MAX_CHAR-1] = '\0';
+  
   printf("Loaded '%s' - width %d, height %d, bpp %d\n", filename, stb->width, stb->height, stb->bpp);
 }
 
+inline static const char*
+stripFile(char *name)
+{
+  const char* strippedName = name;
+  for (char *Scan = name; *Scan != '\0'; ++Scan)
+  {
+    if(*Scan == '\\' || *Scan == '/')
+      strippedName = Scan + 1;
+  } 
+  
+  return(strippedName);
+}
+
 void
-// unLoadSTBImage(struct STBImage* stb)
 unLoadSTBImage(STBImage* stb)
 {
-  printf("Unloading STB image\n");
+  printf("Unloading STB image: %s\n", stripFile(stb->name));
   if (!stb->imageData)
   {
     fprintf(stderr, "ERROR: trying to unload a NULL image\n");
