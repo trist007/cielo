@@ -48,7 +48,7 @@ typedef struct TextureTile {
 struct GameState;
 
 void     loadSTBImage(STBImage* stb, const char* filename);
-void     unLoadSTBImage(struct STBImage* stb);
+void     unLoadSTBImage(STBImage* stb);
 void     loadTile(int* numTextureTiles, struct TextureTile* textureTiles, const char* filename);
 bool     textureLoad(struct Texture* texture, GLenum textureTarget, const char* filename);
 void     textureLoadInternal(Texture* texture, const void* pImageData, bool isSRGB);

@@ -9,14 +9,20 @@ uniform float gMaxHeight;
 
 out vec4 Color;
 out vec2 Tex;
+out vec3 WorldPos;
 
 void main()
 {
     gl_Position = gVP * vec4(Position, 1.0);
+
+    // Make higher places brighter
     float DeltaHeight = gMaxHeight - gMinHeight;
     float HeightRatio = (Position.y - gMinHeight) / DeltaHeight;
     float c = HeightRatio * 0.8 + 0.2;
     Color = vec4(c, c, c, 1.0);
+
     Tex = InTex;
+
+    WorldPos = Position;
 }
 

@@ -90,7 +90,6 @@ void triangleListCreate(TriangleList* tl, int width, int depth, BaseTerrain* ter
       vertex->y = array2Df_get(&terrain->heightMap, x, z);
       vertex->z = (float)z * terrain->worldScale;
       
-
       // Texture Coordinates
       float size = (float)terrain->terrainSize;
       float textureScale = terrain->textureScale;
@@ -151,9 +150,9 @@ void triangleListCreate(TriangleList* tl, int width, int depth, BaseTerrain* ter
   numFloats += 2;
 
   // PopulateBuffers
-  glBufferData(GL_ARRAY_BUFFER, numVertices * sizeof(Vertex), vertices, GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, numVertices * sizeof(Vertex), &vertices[0], GL_STATIC_DRAW);
 
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, numIndices * sizeof(GLuint), indices, GL_STATIC_DRAW);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, numIndices * sizeof(GLuint), &indices[0], GL_STATIC_DRAW);
 
   // NOTE(trist007): this unbinds the VAO, vertex array object
   glBindVertexArray(0);
@@ -379,7 +378,7 @@ void cameraOnMouse(BasicCamera* camera, int x, int y)
   camera->mousePos.Y = (float)y;
 
   camera->AngleH += (float)deltaX / 20.0f;
-  camera->AngleV += (float)deltaY / 20.0f;
+  camera->AngleV += -(float)deltaY / 5.0f;
 
   /* clamp vertical look so you can't flip past straight up/down */
   if (camera->AngleV > 90.0f)  camera->AngleV = 90.0f;
@@ -588,6 +587,7 @@ createMidpointDisplacement(struct BaseTerrain* terrain, int terrainSize, float r
 
   float actualMin, actualMax;
   array2Df_getMinMax(&terrain->heightMap, &actualMin, &actualMax);
+  printf("pre-normalize min %f/t max %f\n", actualMin, actualMax);
 
   array2Df_normalize(&terrain->heightMap, minHeight, maxHeight);
   triangleListCreate(&terrain->triangleList, terrainSize, terrainSize, terrain);

@@ -111,6 +111,10 @@ static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lp
           case 'Q':       key = KEY_Q;   break;
           case 'C':       key = KEY_C;   break;
           case 'W':       key = KEY_W;   break;
+          case 'E':       key = KEY_E;   break;
+          case 'R':       key = KEY_R;   break;
+          case 'Z':       key = KEY_Z;   break;
+          case 'X':       key = KEY_X;   break;
           case 'A':       key = KEY_A;   break;
           case 'S':       key = KEY_S;   break;
           case 'D':       key = KEY_D;   break;

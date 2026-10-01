@@ -28,7 +28,8 @@ loadSTBImage(STBImage* stb, const char* filename)
 }
 
 void
-unLoadSTBImage(struct STBImage* stb)
+// unLoadSTBImage(struct STBImage* stb)
+unLoadSTBImage(STBImage* stb)
 {
   printf("Unloading STB image\n");
   if (!stb->imageData)
@@ -107,7 +108,7 @@ textureLoad(struct Texture* texture, GLenum textureTarget, const char* filename)
   glTexImage2D(textureTarget, 0, format, texture->width, texture->height, 0, format, GL_UNSIGNED_BYTE, data);
   glGenerateMipmap(textureTarget);
   
-  glTexParameteri(textureTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+  glTexParameteri(textureTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); // highest quality but slowest
   glTexParameteri(textureTarget, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   glTexParameteri(textureTarget, GL_TEXTURE_WRAP_S, GL_REPEAT);
   glTexParameteri(textureTarget, GL_TEXTURE_WRAP_T, GL_REPEAT);

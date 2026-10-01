@@ -72,7 +72,7 @@ static void
 initTerrainTextureGenerator(GameState* gamestate)
 {
   float WorldScale                = 2.0f;
-  float TextureScale              = 4.0f;
+  float TextureScale              = 1.0f;
   gamestate->terrain.worldScale   = WorldScale;
   gamestate->terrain.textureScale = TextureScale;
 
@@ -193,15 +193,15 @@ int main(int argc, char** argv)
 
   gamestate->shaderProg = glCreateProgram();
 
-  if (!AddShader(gamestate, GL_VERTEX_SHADER, "terrain.vs"))
+  if (!AddShader(gamestate, GL_VERTEX_SHADER, "terrain-vertex.glsl"))
   {
-    fprintf(stderr, "ERROR: failed to AddShader terrain.vs\n");
+    fprintf(stderr, "ERROR: failed to AddShader terrain-vertex.glsl\n");
     abort();
   }
 
-  if (!AddShader(gamestate, GL_FRAGMENT_SHADER, "terrain.fs"))
+  if (!AddShader(gamestate, GL_FRAGMENT_SHADER, "terrain-fragment.glsl"))
   {
-    fprintf(stderr, "ERROR: failed to AddShader terrain.fs\n");
+    fprintf(stderr, "ERROR: failed to AddShader terrain-fragment.glsl\n");
     abort();
   }
 
@@ -273,7 +273,20 @@ int main(int argc, char** argv)
 
   while (!platform_window_should_close(gamestate->window))
   {
+    static float t = 0.0f;
+    const float R = 1100.f, S = 512.0f;
     platform_poll_events(gamestate->window);
+     
+    /* Orbit
+    HMM_Vec3 pos    = HMM_V3(S + cosf(t) * R, 375.0f, S + sinf(t) * R);
+    HMM_Vec3 center = HMM_V3(S, pos.Y * 0.60f, S);
+
+    gamestate->gameCamera.pos    = pos;
+    gamestate->gameCamera.target = HMM_NormV3(HMM_SubV3(center, pos));
+    gamestate->gameCamera.up     = HMM_V3(0.0f, 1.0f, 0.0f);
+    t += 0.001f;
+    */
+
     processInput(gamestate->window, gamestate);
 
     renderScene(&gamestate->terrain, &gamestate->gameCamera);
@@ -282,7 +295,9 @@ int main(int argc, char** argv)
 
   // shutdown
   for (int i = 0; i < gamestate->numTextureTiles; i++)
+  {
     unLoadSTBImage(&gamestate->textureTiles[i].image);
+  }
   
   for (int i = 0; i < gamestate->numTextures; i++)
     glDeleteTextures(1, &gamestate->texture[i].textureObj);
