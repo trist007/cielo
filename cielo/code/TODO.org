@@ -1,0 +1,10 @@
+#+title: Todo
+
+Also:
+
+Sampler uniforms. tex0UnitLoc to tex3UnitLoc in main are still never set with glUniform1i, so all four samplers read unit 0.
+KEY_C conflict. processInput uses it to print the camera, and cameraOnKeyboard now uses it to turn left, so printing the camera also rotates the view.
+Prototypes. calculateNormals calls the Vec3_* helpers before they're defined, so they need declarations in terrain.h or they must be moved above it.
+
+Fix #1 to #4 and the debug view FragColor = vec4(Normal_ * 0.5 + 0.5, 1.0) should show flat areas as light green.
+

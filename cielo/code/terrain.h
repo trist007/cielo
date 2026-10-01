@@ -43,11 +43,21 @@ struct TriangleList
 typedef struct BaseTerrain BaseTerrain;
 struct BaseTerrain
 {
-  GLuint       shaderProg;
-  GLuint       minHeightLoc;
-  GLuint       maxHeightLoc;
-  GLuint       VPLoc;
-  GLint        reversedLightDirLoc;
+  GLuint shaderProg;
+  
+  GLuint VPLoc;
+  GLint  reversedLightDirLoc;
+  GLuint minHeightLoc;
+  GLuint maxHeightLoc;
+  GLuint tex0UnitLoc;
+  GLuint tex1UnitLoc;
+  GLuint tex2UnitLoc;
+  GLuint tex3UnitLoc;
+  GLuint tex0HeightLoc;
+  GLuint tex1HeightLoc;
+  GLuint tex2HeightLoc;
+  GLuint tex3HeightLoc;
+
   float        worldScale;
   float        textureScale;
 

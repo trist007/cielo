@@ -63,7 +63,9 @@ void renderScene(BaseTerrain* terrain, const BasicCamera* camera)
   HMM_Mat4 VP = Camera_GetViewProjMatrix(camera);
 
   glUseProgram(terrain->shaderProg);
+
   glUniform3f(terrain->reversedLightDirLoc, terrain->ReversedLightDir.X, terrain->ReversedLightDir.Y, terrain->ReversedLightDir.Z);
+
   glUniformMatrix4fv(terrain->VPLoc, 1, GL_FALSE, (const GLfloat*)&VP);
 
   triangleListRender(&terrain->triangleList);
@@ -611,10 +613,26 @@ createMidpointDisplacement(struct BaseTerrain* terrain, int terrainSize, float r
   }
  
   terrain->terrainSize = terrainSize;
+  
+  float Height0 = 64.0f;
+  float Height1 = 128.0f;
+  float Height2 = 192.0f;
+  float Height3 = 256.0f;
 
   glUseProgram(terrain->shaderProg);
+
   glUniform1f(terrain->minHeightLoc, minHeight);
   glUniform1f(terrain->maxHeightLoc, maxHeight);
+
+  glUniform1i(terrain->tex0UnitLoc, 0);
+  glUniform1i(terrain->tex1UnitLoc, 1);
+  glUniform1i(terrain->tex2UnitLoc, 2);
+  glUniform1i(terrain->tex3UnitLoc, 3);
+  
+  glUniform1f(terrain->tex0HeightLoc, Height0); 
+  glUniform1f(terrain->tex1HeightLoc, Height1);
+  glUniform1f(terrain->tex2HeightLoc, Height2);
+  glUniform1f(terrain->tex3HeightLoc, Height3);
 
   array2Df_initFill(&terrain->heightMap, terrainSize, terrainSize, 0.0f);
   createMidpointDisplacementF32(terrain, terrainSize, roughness);
