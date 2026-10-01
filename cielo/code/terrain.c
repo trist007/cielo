@@ -9,6 +9,7 @@
 #include <sys/types.h>
 
 #include "terrain.h"
+#include "HandmadeMath.h"
 #include "array2df.h"
 #include "stb_image.h"
 
@@ -62,6 +63,7 @@ void renderScene(BaseTerrain* terrain, const BasicCamera* camera)
   HMM_Mat4 VP = Camera_GetViewProjMatrix(camera);
 
   glUseProgram(terrain->shaderProg);
+  glUniform3f(terrain->reversedLightDirLoc, terrain->ReversedLightDir.X, terrain->ReversedLightDir.Y, terrain->ReversedLightDir.Z);
   glUniformMatrix4fv(terrain->VPLoc, 1, GL_FALSE, (const GLfloat*)&VP);
 
   triangleListRender(&terrain->triangleList);
@@ -86,15 +88,15 @@ void triangleListCreate(TriangleList* tl, int width, int depth, BaseTerrain* ter
     for (int x = 0; x < width; x++) {
       Vertex* vertex = &vertices[index++];
       
-      vertex->x = (float)x * terrain->worldScale;
-      vertex->y = array2Df_get(&terrain->heightMap, x, z);
-      vertex->z = (float)z * terrain->worldScale;
+      vertex->Position.X = (float)x * terrain->worldScale;
+      vertex->Position.Y = array2Df_get(&terrain->heightMap, x, z);
+      vertex->Position.Z = (float)z * terrain->worldScale;
       
       // Texture Coordinates
       float size = (float)terrain->terrainSize;
       float textureScale = terrain->textureScale;
-      vertex->u = textureScale * (float)x / size;
-      vertex->v = textureScale * (float)z / size;
+      vertex->Texture.U = textureScale * (float)x / size;
+      vertex->Texture.V = textureScale * (float)z / size;
     }
   }
   
@@ -137,19 +139,26 @@ void triangleListCreate(TriangleList* tl, int width, int depth, BaseTerrain* ter
   glGenBuffers(1, &tl->IB);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, tl->IB);
 
-  int POS_LOC = 0;
-  int TEX_LOC = 1;
-  glEnableVertexAttribArray(POS_LOC);
+  int POS_LOC    = 0;
+  int TEX_LOC    = 1;
+  int NORMAL_LOC = 2;
 
   size_t numFloats = 0;
+  glEnableVertexAttribArray(POS_LOC);
   glVertexAttribPointer(POS_LOC, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void*)(numFloats * sizeof(float)));
   numFloats += 3;
   
   glEnableVertexAttribArray(TEX_LOC);
   glVertexAttribPointer(TEX_LOC, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void*)(numFloats * sizeof(float)));
   numFloats += 2;
+  
+  glEnableVertexAttribArray(NORMAL_LOC);
+  glVertexAttribPointer(NORMAL_LOC, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void*)(numFloats * sizeof(float)));
+  numFloats += 3;
+
 
   // PopulateBuffers
+  calculateNormals(vertices, numVertices, indices, numIndices);
   glBufferData(GL_ARRAY_BUFFER, numVertices * sizeof(Vertex), &vertices[0], GL_STATIC_DRAW);
 
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, numIndices * sizeof(GLuint), &indices[0], GL_STATIC_DRAW);
@@ -430,6 +439,31 @@ void cameraOnKeyboard(BasicCamera* camera, const bool* keys)
     camera->pos.X += right.X * camera->speed;
     camera->pos.Y += right.Y * camera->speed;
     camera->pos.Z += right.Z * camera->speed;
+  }
+  
+  // Tilt
+  if (keys[KEY_Q])
+    camera->AngleV += 0.1f * camera->speed;
+  if (keys[KEY_E])
+    camera->AngleV -= 0.1f * camera->speed;
+  if (keys[KEY_Z])
+    camera->AngleH += 0.1f * camera->speed;
+  if (keys[KEY_C])
+    camera->AngleH -= 0.1f * camera->speed;
+  
+  // Clamp
+  if (camera->AngleV >  89.0f)  camera->AngleV = 89.0f;
+  if (camera->AngleV < -89.0f) camera->AngleV = -89.0f;
+  
+  /* recompute target direction from the updated angles */
+  if (keys[KEY_Q] || keys[KEY_E] || keys[KEY_Z] || keys[KEY_C])
+  {
+    float horRad = ToRadian(camera->AngleH);
+    float verRad = ToRadian(camera->AngleV);
+
+    camera->target.X = cosf(verRad) * sinf(horRad);
+    camera->target.Y = sinf(verRad);
+    camera->target.Z = cosf(verRad) * cosf(horRad);
   }
 }
 
@@ -741,4 +775,92 @@ getHeightInterpolated(BaseTerrain* terrain, float x, float z)
   float finalHeight = (interpolatedHeightX + interpolatedHeightZ) / 2.0f;
   
   return(finalHeight);
+}
+
+void
+calculateNormals(Vertex* vertices, int numVertices, GLuint* indices, int numIndices)
+{
+  unsigned int index = 0;
+
+  // Iterate in groups of three, or one triangle at a time
+  for (unsigned int i = 0; i < (unsigned int)numIndices; i += 3)
+  {
+    unsigned int index0 = indices[i];
+    unsigned int index1 = indices[i + 1];
+    unsigned int index2 = indices[i + 2];
+    HMM_Vec3 v1 = Vec3_Subtract(vertices[index1].Position, vertices[index0].Position);
+    HMM_Vec3 v2 = Vec3_Subtract(vertices[index2].Position, vertices[index0].Position);
+    HMM_Vec3 normal = Vec3_CrossProduct(v1, v2);
+    Vec3_Normalize(&normal);
+    
+    vertices[index0].Normal = Vec3_Add(vertices[index0].Normal, normal);
+    vertices[index1].Normal = Vec3_Add(vertices[index1].Normal, normal);
+    vertices[index2].Normal = Vec3_Add(vertices[index2].Normal, normal);
+  }
+  
+  for (unsigned int i = 0; i < (unsigned int)numVertices; i++)
+  {
+    Vec3_Normalize(&vertices[i].Normal);
+  }
+}
+
+HMM_Vec3
+Vec3_Subtract(HMM_Vec3 a, HMM_Vec3 b)
+{
+  HMM_Vec3 result = { a.X - b.X, a.Y - b.Y, a.Z - b.Z };
+  
+  return(result);
+}
+
+HMM_Vec3
+Vec3_CrossProduct(HMM_Vec3 a, HMM_Vec3 b)
+{
+  HMM_Vec3 result = { 
+    a.Y * b.Z - a.Z * b.Y,
+    a.Z * b.X - a.X * b.Z,
+    a.X * b.Y - a.Y * b.X
+  };
+
+  return(result);
+}
+
+void
+Vec3_Normalize(HMM_Vec3* normal)
+{
+  float length = sqrtf(normal->X * normal->X + normal->Y * normal->Y + normal->Z * normal->Z);
+  
+  if (length == 0)
+  {
+    fprintf(stderr, "ERROR: length is 0 aborting due to division by 0");
+    abort();
+  }
+  
+  normal->X /= length;
+  normal->Y /= length;
+  normal->Z /= length;
+}
+
+HMM_Vec3
+Vec3_Add(HMM_Vec3 a, HMM_Vec3 b)
+{
+  HMM_Vec3 result = { a.X + b.X, a.Y + b.Y, a.Z + b.Z };
+
+  return(result);
+}
+
+HMM_Vec3
+Vec3_Mul(HMM_Vec3 a, HMM_Vec3 b)
+{
+  HMM_Vec3 result = { a.X * b.X + a.Y * b.Y + a.Z * b.Z };
+  
+  return(result);
+}
+
+
+HMM_Vec3
+Vec3_MulbyScalar(HMM_Vec3 a, float b)
+{
+  HMM_Vec3 result = { a.X * b, + a.Y * b, + a.Z * b };
+  
+  return(result);
 }

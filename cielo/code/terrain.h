@@ -24,8 +24,9 @@
 #define ToDegree(x) (float)(((x) * 180.0f / PI ))
 
 typedef struct Vertex {
-  GLfloat x, y, z;
-  GLfloat u, v;
+  HMM_Vec3 Position;
+  HMM_Vec2 Texture;
+  HMM_Vec3 Normal;
   
 } Vertex;
 
@@ -46,12 +47,16 @@ struct BaseTerrain
   GLuint       minHeightLoc;
   GLuint       maxHeightLoc;
   GLuint       VPLoc;
+  GLint        reversedLightDirLoc;
   float        worldScale;
   float        textureScale;
 
   int          terrainSize;
   Array2Df     heightMap;
   TriangleList triangleList;
+  
+
+  HMM_Vec3 ReversedLightDir;
 };
 
 typedef struct TerrainPoint TerrainPoint;
@@ -141,9 +146,8 @@ struct GameState
   struct TextureTile textureTiles[MAX_TEXTURE_TILES];
   int    numTextureTiles;
 
-  GLuint VPLoc;
+  // GLuint VPLoc;
   PersProjInfo persProjInfo;
-
   struct BaseTerrain terrain;
 };
 
@@ -172,7 +176,13 @@ void     triangleListDestroy(TriangleList* tl);
 HMM_Mat4 Camera_GetViewProjMatrix(const BasicCamera* camera);
 float    FIRFilterSinglePoint(Array2Df* heightMap, int x, int z, float prevVal, float filter);
 void     applyFIRFilter(Array2Df* heightMap, int terrainSize, float filter);
-
+void     calculateNormals(Vertex* vertices, int numVertices, GLuint* indices, int numIndices);
+HMM_Vec3 Vec3_Subtract(HMM_Vec3 a, HMM_Vec3 b);
+HMM_Vec3 Vec3_CrossProduct(HMM_Vec3 a, HMM_Vec3 b);
+void     Vec3_Normalize(HMM_Vec3* normal);
+HMM_Vec3 Vec3_Add(HMM_Vec3 a, HMM_Vec3 b);
+HMM_Vec3 Vec3_Mul(HMM_Vec3 a, HMM_Vec3 b);
+HMM_Vec3 Vec3_MulbyScalar(HMM_Vec3 a, float b);
 
 void cameraPrint(BasicCamera* camera);
 void cameraOnMouse(BasicCamera* camera, int x, int y);

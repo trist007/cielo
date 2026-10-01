@@ -5,6 +5,7 @@ layout(location = 0) out vec4 FragColor;
 in vec4 Color;
 in vec2 Tex;
 in vec3 WorldPos;
+in vec3 Normal;
 
 // uniform sampler2D gTerrainTexture;
 
@@ -17,6 +18,9 @@ uniform float gHeight0 = 64.0;
 uniform float gHeight1 = 128.0;
 uniform float gHeight2 = 193.0;
 uniform float gHeight3 = 256.0;
+
+uniform vec3 gReversedLightDir;
+
 vec4 CalcTexColor()
 {
     vec4 TexColor;
@@ -55,7 +59,14 @@ void main()
 {
     vec4 TexColor = CalcTexColor();
 
-    FragColor = Color * TexColor;
+    // This Normal comes from Vertex Shader
+    vec3 Normal_ = normalize(Normal);
+
+    float Diffuse = dot(Normal_, gReversedLightDir);
+
+    Diffuse = max(0.3f, Diffuse);
+
+    FragColor = Color * TexColor * Diffuse;
 }
 
 // void main()

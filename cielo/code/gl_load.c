@@ -36,6 +36,7 @@ PFNGLTEXIMAGE2DPROC              glTexImage2D;
 PFNGLTEXPARAMETERIPROC           glTexParameteri;
 PFNGLTEXPARAMETERIVPROC          glTexParameteriv;
 PFNGLUNIFORM1FPROC               glUniform1f;
+PFNGLUNIFORM3FPROC               glUniform3f;
 PFNGLUNIFORMMATRIX4FVPROC        glUniformMatrix4fv;
 PFNGLUSEPROGRAMPROC              glUseProgram;
 PFNGLVALIDATEPROGRAMPROC         glValidateProgram;
@@ -80,6 +81,7 @@ int gl_load_all(GL_get_proc_address func)
   glTexParameteri           = (PFNGLTEXPARAMETERIPROC) func("glTexParameteri");
   glTexParameteriv          = (PFNGLTEXPARAMETERIVPROC) func("glTexParameteriv");
   glUniform1f               = (PFNGLUNIFORM1FPROC) func("glUniform1f");
+  glUniform3f               = (PFNGLUNIFORM3FPROC) func("glUniform3f");
   glUniformMatrix4fv        = (PFNGLUNIFORMMATRIX4FVPROC) func("glUniformMatrix4fv");
   glUseProgram              = (PFNGLUSEPROGRAMPROC) func("glUseProgram");
   glValidateProgram         = (PFNGLVALIDATEPROGRAMPROC) func("glValidateProgram");

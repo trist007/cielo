@@ -85,7 +85,7 @@ initTerrainTextureGenerator(GameState* gamestate)
   
   gamestate->terrain.minHeightLoc = getUniformLocation(gamestate, "gMinHeight");
   gamestate->terrain.maxHeightLoc = getUniformLocation(gamestate, "gMaxHeight");
-
+  
   createMidpointDisplacement(&gamestate->terrain, size, roughness, minHeight, maxHeight);
 
   loadTile(&gamestate->numTextureTiles, gamestate->textureTiles, "../assets/textures/rock02_2.jpg");
@@ -102,7 +102,7 @@ initTerrainTextureGenerator(GameState* gamestate)
 static void processInput(PlatformWindow* window, GameState* gs)
 {
   // Exit – continuous is fine, or use just_pressed
-  if (platform_key_down(window, KEY_ESC) || platform_key_down(window, KEY_Q))
+  if (platform_key_down(window, KEY_ESC))
     platform_window_close(window);
 
   // One-shot actions
@@ -118,7 +118,7 @@ static void processInput(PlatformWindow* window, GameState* gs)
   cameraOnKeyboard(&gs->gameCamera, window->keys);
 
   // Mouse
-  cameraOnMouse(&gs->gameCamera, window->mouseX, window->mouseY);
+  // cameraOnMouse(&gs->gameCamera, window->mouseX, window->mouseY);
 }
 
 static HMM_Vec3 normalizeFloat3(HMM_Vec3 vector)
@@ -190,8 +190,25 @@ int main(int argc, char** argv)
     fprintf(stderr, "Failed to load OpenGL functions\n");
     abort();
   }
-
+  
+  // Add light
+  // HMM_Vec3 LightDir = (HMM_Vec3) { 1.0f, -1.0f, 0.0f };
   gamestate->shaderProg = glCreateProgram();
+
+  GLint VPLoc               = -1;
+  GLint minHeightLoc        = -1;
+  GLint maxHeightLoc        = -1;
+  GLint tex0HeightLoc       = -1;
+  GLint tex1HeightLoc       = -1;
+  GLint tex2HeightLoc       = -1;
+  GLint tex3HeightLoc       = -1;
+  GLint tex0UnitLoc         = -1;
+  GLint tex1UnitLoc         = -1;
+  GLint tex2UnitLoc         = -1;
+  GLint tex3UnitLoc         = -1;
+
+  HMM_Vec3 LightDir = { 1.0f, -1.0f, 0.0f };
+  gamestate->terrain.ReversedLightDir = Vec3_MulbyScalar(LightDir, -1.0f);
 
   if (!AddShader(gamestate, GL_VERTEX_SHADER, "terrain-vertex.glsl"))
   {
@@ -210,6 +227,21 @@ int main(int argc, char** argv)
 
   // Link shaders to program
   glLinkProgram(gamestate->shaderProg);
+  
+  VPLoc               = glGetUniformLocation(gamestate->shaderProg, "gVP");
+  minHeightLoc        = glGetUniformLocation(gamestate->shaderProg, "gMinHeight");
+  maxHeightLoc        = glGetUniformLocation(gamestate->shaderProg, "gMaxHeight");
+  tex0UnitLoc         = glGetUniformLocation(gamestate->shaderProg, "gTextureHeight0");
+  tex1UnitLoc         = glGetUniformLocation(gamestate->shaderProg, "gTextureHeight1");
+  tex2UnitLoc         = glGetUniformLocation(gamestate->shaderProg, "gTextureHeight2");
+  tex3UnitLoc         = glGetUniformLocation(gamestate->shaderProg, "gTextureHeight3");
+  tex0HeightLoc       = glGetUniformLocation(gamestate->shaderProg, "gHeight0");
+  tex1HeightLoc       = glGetUniformLocation(gamestate->shaderProg, "gHeight1");
+  tex2HeightLoc       = glGetUniformLocation(gamestate->shaderProg, "gHeight2");
+  tex3HeightLoc       = glGetUniformLocation(gamestate->shaderProg, "gHeight3");
+  gamestate->terrain.reversedLightDirLoc = glGetUniformLocation(gamestate->shaderProg, "gReversedLightDir");
+
+
   // check if shaders linked successfully
   glGetProgramiv(gamestate->shaderProg, GL_LINK_STATUS, &Success);
 
@@ -237,15 +269,15 @@ int main(int argc, char** argv)
 
   gamestate->shaderCount = 0;
 
-  gamestate->VPLoc = getUniformLocation(gamestate, "gVP");
+  gamestate->terrain.VPLoc = getUniformLocation(gamestate, "gVP");
 
-  if (gamestate->VPLoc == INVALID_UNIFORM_LOCATION) {
+  if (gamestate->terrain.VPLoc == INVALID_UNIFORM_LOCATION) {
     free(gamestate);
     abort();
   }
   
   gamestate->terrain.shaderProg = gamestate->shaderProg;
-  gamestate->terrain.VPLoc      = gamestate->VPLoc;
+  // gamestate->terrain.VPLoc      = gamestate->VPLoc;
 
   // Create Camera
   HMM_Vec3 Pos = {{250.0f, 450.0f, -150.0f}};
