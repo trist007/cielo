@@ -881,7 +881,7 @@ Vec3_Mul(HMM_Vec3 a, HMM_Vec3 b)
 HMM_Vec3
 Vec3_MulbyScalar(HMM_Vec3 a, float b)
 {
-  HMM_Vec3 result = { a.X * b, + a.Y * b, + a.Z * b };
+  HMM_Vec3 result = { a.X * b, a.Y * b, a.Z * b };
   
   return(result);
 }
