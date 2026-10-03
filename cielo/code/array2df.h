@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <vcruntime.h>
 
 typedef struct Array2Df Array2Df;
 struct Array2Df {
@@ -11,6 +12,36 @@ struct Array2Df {
     int    rows;
 };
 
+static inline size_t
+array2Df_calcIndex(const Array2Df* a, int col, int row)
+{
+  if (col < 0)
+  {
+    printf("%s:%d - negative col %d\n", __FILE__, __LINE__, col);
+  }
+  
+  if (col >= a->cols)
+  {
+    printf("%s:%d - column overflow (%d vs %d)\n", __FILE__, __LINE__, col, a->cols);
+    abort();
+  }
+  
+  if (row < 0)
+  {
+    printf("%s:%d - negative row %d\n", __FILE__, __LINE__, row);
+  }
+  
+  if (row >= a->rows)
+  {
+    printf("%s:%d - row overflow (%d vs %d)\n", __FILE__, __LINE__, row, a->rows);
+    abort();
+  }
+  
+  size_t index = row * a->cols + col;
+  
+  return(index);
+}
+/*
 static inline size_t array2Df_calcIndex(const Array2Df* a, int col, int row)
 {
 #ifndef NDEBUG
@@ -25,6 +56,7 @@ static inline size_t array2Df_calcIndex(const Array2Df* a, int col, int row)
 #endif
     return (size_t)row * a->cols + col;
 }
+*/
 
 /* equivalent to InitArray2D(Cols, Rows) */
 static inline void array2Df_init(Array2Df* a, int cols, int rows)

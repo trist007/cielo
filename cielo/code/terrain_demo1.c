@@ -11,11 +11,6 @@
 static void
 initTerrainMultiTextures(GameState* gamestate)
 {
-  float WorldScale                = 2.0f;
-  float TextureScale              = 4.0f;
-  gamestate->terrain.worldScale   = WorldScale;
-  gamestate->terrain.textureScale = TextureScale;
-  
   // Load Textures
 #if defined(_WIN32)
   strncpy_s(gamestate->textureFile[0], MAX_CHAR, "../assets/textures/IMGP5525_seamless.jpg", _TRUNCATE);
@@ -43,15 +38,34 @@ initTerrainMultiTextures(GameState* gamestate)
     }
   }
 
-  // Init Terrain
-  int   size       = 512;
-  int   iterations = 500;
-  float minHeight  = 0.0f;
-  float maxHeight  = 300.0f;
-  float filter     = 0.5f;
-  
-  // NOTE(trist007): this will smoothen out peaks, at 0.5f the peaks are sharp, at 2.0f they are super round
-  float roughness = 1.0f;
+  float WorldScale                = 2.0f;
+  float TextureScale              = 1.0f;
+  gamestate->terrain.worldScale   = WorldScale;
+  gamestate->terrain.textureScale = TextureScale;
+
+  int   terrainSize = 513;
+  float roughness   = 1.0f;
+  float minHeight   = 0.0f;
+  float maxHeight   = 356.0f;
+  float filter      = 0.5f;
+  int   patchSize   = 33;
+  int   textureSize = 1024;
+
+  // HMM_Vec3 LightDir = { 0.3f, -1.0f, 0.3f };
+  HMM_Vec3 LightDir = { 1.0f, -1.0f, 0.0f };
+  HMM_Vec3 rev = Vec3_MulbyScalar(LightDir, -1.0f);
+  Vec3_Normalize(&rev);
+
+  gamestate->terrain.terrainSize      = terrainSize;
+  gamestate->terrain.width            = terrainSize;
+  gamestate->terrain.depth            = terrainSize;
+  gamestate->terrain.roughness        = roughness;
+  gamestate->terrain.minHeight        = minHeight;
+  gamestate->terrain.maxHeight        = maxHeight;
+  gamestate->terrain.patchSize        = patchSize;
+  gamestate->terrain.textureSize      = textureSize;
+  gamestate->terrain.ReversedLightDir = rev;
+ 
 
   gamestate->terrain.minHeightLoc = getUniformLocation(gamestate, "gMinHeight");
   gamestate->terrain.maxHeightLoc = getUniformLocation(gamestate, "gMaxHeight");
@@ -65,7 +79,7 @@ initTerrainMultiTextures(GameState* gamestate)
   }
 
   // createFaultFormation(&gamestate->terrain, size, iterations, minHeight, maxHeight, filter);
-  createMidpointDisplacement(&gamestate->terrain, size, roughness, minHeight, maxHeight);
+  createMidpointDisplacement(&gamestate->terrain, terrainSize, roughness, minHeight, maxHeight);
 }
 
 static void
@@ -76,30 +90,44 @@ initTerrainTextureGenerator(GameState* gamestate)
   gamestate->terrain.worldScale   = WorldScale;
   gamestate->terrain.textureScale = TextureScale;
 
-  int   size       = 512;
-  float roughness  = 1.0f;
-  int   iterations = 500;
-  float minHeight  = 0.0f;
-  float maxHeight  = 156.0f;
-  float filter     = 0.5f;
+  int   terrainSize = 513;
+  float roughness   = 1.0f;
+  float minHeight   = 0.0f;
+  float maxHeight   = 356.0f;
+  float filter      = 0.5f;
+  int   patchSize   = 33;
+  int   textureSize = 1024;
+
+  // HMM_Vec3 LightDir = { 0.3f, -1.0f, 0.3f };
+  HMM_Vec3 LightDir = { 1.0f, -1.0f, 0.0f };
+  HMM_Vec3 rev = Vec3_MulbyScalar(LightDir, -1.0f);
+  Vec3_Normalize(&rev);
+
+  gamestate->terrain.terrainSize      = terrainSize;
+  gamestate->terrain.width            = terrainSize;
+  gamestate->terrain.depth            = terrainSize;
+  gamestate->terrain.roughness        = roughness;
+  gamestate->terrain.minHeight        = minHeight;
+  gamestate->terrain.maxHeight        = maxHeight;
+  gamestate->terrain.patchSize        = patchSize;
+  gamestate->terrain.textureSize      = textureSize;
+  gamestate->terrain.ReversedLightDir = rev;
   
   gamestate->terrain.minHeightLoc = getUniformLocation(gamestate, "gMinHeight");
   gamestate->terrain.maxHeightLoc = getUniformLocation(gamestate, "gMaxHeight");
   
-  createMidpointDisplacement(&gamestate->terrain, size, roughness, minHeight, maxHeight);
+  createMidpointDisplacement(&gamestate->terrain, terrainSize, roughness, minHeight, maxHeight);
 
   loadTile(&gamestate->numTextureTiles, gamestate->textureTiles, "../assets/textures/rock02_2.jpg");
   loadTile(&gamestate->numTextureTiles, gamestate->textureTiles, "../assets/textures/rock01.jpg");
   loadTile(&gamestate->numTextureTiles, gamestate->textureTiles, "../assets/textures/tilable-IMG_0044-verydark.png");
   loadTile(&gamestate->numTextureTiles, gamestate->textureTiles, "../assets/textures/water.png");
   
-  int textureSize = 1024;
-  
   generateTexture(gamestate, textureSize, minHeight, maxHeight);
 }
 
-
-static void processInput(PlatformWindow* window, GameState* gs)
+static void
+processInput(PlatformWindow* window, GameState* gs)
 {
   // Exit – continuous is fine, or use just_pressed
   if (platform_key_down(window, KEY_ESC))
@@ -121,7 +149,8 @@ static void processInput(PlatformWindow* window, GameState* gs)
   // cameraOnMouse(&gs->gameCamera, window->mouseX, window->mouseY);
 }
 
-static HMM_Vec3 normalizeFloat3(HMM_Vec3 vector)
+static HMM_Vec3
+normalizeFloat3(HMM_Vec3 vector)
 {
   float length = sqrtf(vector.X*vector.X + vector.Y*vector.Y + vector.Z*vector.Z);
 
@@ -132,25 +161,26 @@ static HMM_Vec3 normalizeFloat3(HMM_Vec3 vector)
   return vector;
 }
 
-void initBasicCamera(BasicCamera *gameCamera, PersProjInfo pers, HMM_Vec3 Pos,
+void
+initBasicCamera(BasicCamera *gameCamera, PersProjInfo pers, HMM_Vec3 Pos,
                      HMM_Vec3 Target, HMM_Vec3 Up)
 {
   gameCamera->persProjInfo = pers;
-  gameCamera->pos = Pos;
-  gameCamera->target = normalizeFloat3(Target);
-  gameCamera->up = normalizeFloat3(Up);
+  gameCamera->pos          = Pos;
+  gameCamera->target       = normalizeFloat3(Target);
+  gameCamera->up           = normalizeFloat3(Up);
 
   gameCamera->AngleH = ToDegree(atan2f(gameCamera->target.Z, gameCamera->target.X)) - 90.0f;
   gameCamera->AngleV = -ToDegree(asinf(gameCamera->target.Y));
 
-  gameCamera->speed = 10.0f; // or whatever default you want
+  gameCamera->speed        = 10.0f; // or whatever default you want
   gameCamera->windowWidth  = WINDOW_WIDTH;
   gameCamera->windowHeight = WINDOW_HEIGHT;
-  gameCamera->OnUpperEdge = false;
-  gameCamera->OnLowerEdge = false;
-  gameCamera->OnLeftEdge  = false;
-  gameCamera->OnRightEdge = false;
-  gameCamera->mousePos.X = (int)(WINDOW_WIDTH / 2);
+  gameCamera->OnUpperEdge  = false;
+  gameCamera->OnLowerEdge  = false;
+  gameCamera->OnLeftEdge   = false;
+  gameCamera->OnRightEdge  = false;
+  gameCamera->mousePos.X   = (int)(WINDOW_WIDTH / 2);
   gameCamera->mousePos.Y = (int)(WINDOW_HEIGHT / 2);
 
   float aspect = pers.Width / pers.Height;
@@ -207,9 +237,6 @@ int main(int argc, char** argv)
   GLint tex2UnitLoc         = -1;
   GLint tex3UnitLoc         = -1;
 
-  HMM_Vec3 LightDir = { 1.0f, -1.0f, 0.0f };
-  gamestate->terrain.ReversedLightDir = Vec3_MulbyScalar(LightDir, -1.0f);
-
   if (!AddShader(gamestate, GL_VERTEX_SHADER, "terrain-vertex.glsl"))
   {
     fprintf(stderr, "ERROR: failed to AddShader terrain-vertex.glsl\n");
@@ -228,19 +255,18 @@ int main(int argc, char** argv)
   // Link shaders to program
   glLinkProgram(gamestate->shaderProg);
   
-  VPLoc               = glGetUniformLocation(gamestate->shaderProg, "gVP");
-  minHeightLoc        = glGetUniformLocation(gamestate->shaderProg, "gMinHeight");
-  maxHeightLoc        = glGetUniformLocation(gamestate->shaderProg, "gMaxHeight");
-  tex0UnitLoc         = glGetUniformLocation(gamestate->shaderProg, "gTextureHeight0");
-  tex1UnitLoc         = glGetUniformLocation(gamestate->shaderProg, "gTextureHeight1");
-  tex2UnitLoc         = glGetUniformLocation(gamestate->shaderProg, "gTextureHeight2");
-  tex3UnitLoc         = glGetUniformLocation(gamestate->shaderProg, "gTextureHeight3");
-  tex0HeightLoc       = glGetUniformLocation(gamestate->shaderProg, "gHeight0");
-  tex1HeightLoc       = glGetUniformLocation(gamestate->shaderProg, "gHeight1");
-  tex2HeightLoc       = glGetUniformLocation(gamestate->shaderProg, "gHeight2");
-  tex3HeightLoc       = glGetUniformLocation(gamestate->shaderProg, "gHeight3");
+  gamestate->terrain.VPLoc               = glGetUniformLocation(gamestate->shaderProg, "gVP");
+  gamestate->terrain.minHeightLoc        = glGetUniformLocation(gamestate->shaderProg, "gMinHeight");
+  gamestate->terrain.maxHeightLoc        = glGetUniformLocation(gamestate->shaderProg, "gMaxHeight");
+  gamestate->terrain.tex0UnitLoc         = glGetUniformLocation(gamestate->shaderProg, "gTextureHeight0");
+  gamestate->terrain.tex1UnitLoc         = glGetUniformLocation(gamestate->shaderProg, "gTextureHeight1");
+  gamestate->terrain.tex2UnitLoc         = glGetUniformLocation(gamestate->shaderProg, "gTextureHeight2");
+  gamestate->terrain.tex3UnitLoc         = glGetUniformLocation(gamestate->shaderProg, "gTextureHeight3");
+  gamestate->terrain.tex0HeightLoc       = glGetUniformLocation(gamestate->shaderProg, "gHeight0");
+  gamestate->terrain.tex1HeightLoc       = glGetUniformLocation(gamestate->shaderProg, "gHeight1");
+  gamestate->terrain.tex2HeightLoc       = glGetUniformLocation(gamestate->shaderProg, "gHeight2");
+  gamestate->terrain.tex3HeightLoc       = glGetUniformLocation(gamestate->shaderProg, "gHeight3");
   gamestate->terrain.reversedLightDirLoc = glGetUniformLocation(gamestate->shaderProg, "gReversedLightDir");
-
 
   // check if shaders linked successfully
   glGetProgramiv(gamestate->shaderProg, GL_LINK_STATUS, &Success);
@@ -292,8 +318,8 @@ int main(int argc, char** argv)
   initBasicCamera(&gamestate->gameCamera, gamestate->persProjInfo, Pos, Target, Up);
 
   // Init Terrain
-  // initTerrainMultiTextures(gamestate);
-  initTerrainTextureGenerator(gamestate);
+  initTerrainMultiTextures(gamestate);
+  // initTerrainTextureGenerator(gamestate);
 
   glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
   glFrontFace(GL_CCW);

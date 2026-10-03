@@ -46,7 +46,7 @@ struct BaseTerrain
   GLuint shaderProg;
   
   GLuint VPLoc;
-  GLint  reversedLightDirLoc;
+  GLuint reversedLightDirLoc;
   GLuint minHeightLoc;
   GLuint maxHeightLoc;
   GLuint tex0UnitLoc;
@@ -60,8 +60,15 @@ struct BaseTerrain
 
   float        worldScale;
   float        textureScale;
+  float        minHeight;
+  float        maxHeight;
+  float        roughness;
 
   int          terrainSize;
+  int          textureSize;
+  int          depth;
+  int          width;
+  int          patchSize;
   Array2Df     heightMap;
   TriangleList triangleList;
   
@@ -166,6 +173,8 @@ GLuint getUniformLocation(GameState* gamestate, const char* pUniformName);
 void   terrainLoadHeightMapFile(BaseTerrain* terrain, const char* pFilename);
 void   terrainLoadFromFile(BaseTerrain* terrain, const char* pFilename);
 void   renderScene(BaseTerrain* terrain, const BasicCamera* camera);
+void   createGLState(TriangleList* tl);
+void   populateBuffers(BaseTerrain* terrain, int width, int depth, TriangleList* tl);
 
 void  createFaultFormationInternal(Array2Df* heightMap, int terrainSize, int interations, float minHeight, float maxHeight, float filter);
 void  createFaultFormation(struct BaseTerrain* terrain, int terrainSize, int interations, float minHeight, float maxHeight, float filter);
@@ -176,6 +185,7 @@ float getHeightInterpolated(BaseTerrain* terrain, float x, float z);
 
 void  createMidpointDisplacementF32(struct BaseTerrain* terrain, int terrainSize, float roughness);
 void  createMidpointDisplacement(struct BaseTerrain* terrain, int terrainSize, float roughness, float minHeight, float maxHeight);
+void  createGeomipGrid(struct BaseTerrain* terrain);
 float randomFloatRange(float min, float max);
 int   calcNextPowerOfTwo(int value);
 int   isValuePowerOfTwo(int n);

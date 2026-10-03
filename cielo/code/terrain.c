@@ -642,13 +642,16 @@ createMidpointDisplacement(struct BaseTerrain* terrain, int terrainSize, float r
   printf("pre-normalize min %f/t max %f\n", actualMin, actualMax);
 
   array2Df_normalize(&terrain->heightMap, minHeight, maxHeight);
-  triangleListCreate(&terrain->triangleList, terrainSize, terrainSize, terrain);
+
+  createGeomipGrid(terrain);
+  // triangleListCreate(&terrain->triangleList, terrainSize, terrainSize, terrain);
 }
 
 void
 createMidpointDisplacementF32(struct BaseTerrain* terrain, int terrainSize, float roughness)
 {
   int rectSize = calcNextPowerOfTwo(terrain->terrainSize);
+  // int rectSize = terrainSize - 1;
   float currentHeight = (float)rectSize / 2.0f;
   float heightReduce = pow(2.0f, -roughness);
   
@@ -683,10 +686,10 @@ diamondStep(int terrainSize, Array2Df* heightMap, int rectSize, float currentHei
       float bottomLeft  = array2Df_get(heightMap, x, nextY);
       float bottomRight = array2Df_get(heightMap, nextX, nextY);
       
-      int midX = x + halfRectSize;
-      int midY = y + halfRectSize;
+      int midX = (x + halfRectSize) % terrainSize;
+      int midY = (y + halfRectSize) % terrainSize;
       
-      float randValue = randomFloatRange(currentHeight, -currentHeight);
+      float randValue = randomFloatRange(-currentHeight, currentHeight);
       float midPoint = (topLeft + topRight + bottomLeft + bottomRight) / 4.0f;
 
       array2Df_set(heightMap, midX, midY, midPoint + randValue);
@@ -710,8 +713,8 @@ squareStep(int terrainSize, Array2Df* heightMap, int rectSize, float currentHeig
       if (nextX < x) nextX = terrainSize - 1;
       if (nextY < y) nextY = terrainSize - 1;
       
-      int midX = x + halfRectSize;
-      int midY = y + halfRectSize;
+      int midX = (x + halfRectSize) % terrainSize;
+      int midY = (y + halfRectSize) % terrainSize;
 
       int prevMidX = (x - halfRectSize + terrainSize) % terrainSize;
       int prevMidY = (y - halfRectSize + terrainSize) % terrainSize;
@@ -755,8 +758,8 @@ isValuePowerOfTwo(int n)
 int
 calcNextPowerOfTwo(int value)
 {
-  if (value == 0) return 0;
-  if (value < 0) return 0;
+  if (value == 0) return 1;
+  if (value <= 1) return 1;
 
   int result = value;
   while (!isValuePowerOfTwo(result))
@@ -881,4 +884,139 @@ Vec3_MulbyScalar(HMM_Vec3 a, float b)
   HMM_Vec3 result = { a.X * b, + a.Y * b, + a.Z * b };
   
   return(result);
+}
+
+void
+createGeomipGrid(struct BaseTerrain* terrain)
+{
+  if ((terrain->width - 1) % (terrain->patchSize - 1) != 0)
+  {
+    int recommendedWidth = ((terrain->width - 1 + terrain->patchSize - 1) / (terrain->patchSize - 1)) * (terrain->patchSize - 1) + 1;
+    printf("Width minus 1 (%d) must be divisible by patchSize minus 1 (%d)\n", terrain->width, terrain->patchSize);
+    printf("Try using Width = %d\n", recommendedWidth);
+    exit(0);
+  }
+  if ((terrain->depth - 1) % (terrain->patchSize - 1) != 0)
+  {
+    int recommendedDepth = ((terrain->depth - 1 + terrain->patchSize - 1) / (terrain->patchSize - 1)) * (terrain->patchSize - 1) + 1;
+    printf("Depth minus 1 (%d) must be divisible by patchSize minus 1 (%d)\n", terrain->depth, terrain->patchSize);
+    printf("Try using Depth = %d\n", recommendedDepth);
+    exit(0);
+  }
+   
+  if (terrain->patchSize < 3)
+  {
+    printf("The minimum patch size is 3 (%d)\n", terrain->patchSize);
+    exit(0);
+  }
+  
+  if (terrain->patchSize % 2 == 0)
+  {
+    printf("Patch size must be an odder number (%d)\n", terrain->patchSize);
+    exit(0);
+  }
+  
+  createGLState(&terrain->triangleList);
+  populateBuffers(terrain, terrain->width, terrain->depth, &terrain->triangleList);
+   
+  // Reset Bindings
+  glBindVertexArray(0);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+}
+
+void
+createGLState(TriangleList* tl)
+{
+  glGenVertexArrays(1, &tl->VAO);
+  glBindVertexArray(tl->VAO);
+
+  glGenBuffers(1, &tl->VB);
+  glBindBuffer(GL_ARRAY_BUFFER, tl->VB);
+
+  glGenBuffers(1, &tl->IB);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, tl->IB);
+
+  int POS_LOC    = 0;
+  int TEX_LOC    = 1;
+	int NORMAL_LOC = 2;
+
+	size_t numFloats = 0;
+	
+  glEnableVertexAttribArray(POS_LOC);
+  glVertexAttribPointer(POS_LOC, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void*)(numFloats * sizeof(float)));
+  numFloats += 3;
+
+  glEnableVertexAttribArray(TEX_LOC);
+  glVertexAttribPointer(TEX_LOC, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void*)(numFloats * sizeof(float)));
+  numFloats += 2;
+
+  glEnableVertexAttribArray(NORMAL_LOC);
+  glVertexAttribPointer(NORMAL_LOC, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void*)(numFloats * sizeof(float)));
+  numFloats += 3;
+}
+
+void
+populateBuffers(BaseTerrain* terrain, int width, int depth, TriangleList* tl)
+{
+  int numVertices = width * depth;
+  int numTriangles = (width - 1) * (depth - 1) * 2;
+  int numIndices = numTriangles * 3;
+
+  Vertex* vertices = (Vertex*)calloc(numVertices, sizeof(Vertex));
+  GLuint* indices  = (GLuint*)calloc(numIndices, sizeof(GLuint));
+
+  if (!vertices || !indices) {
+    fprintf(stderr, "Out of memory building terrain mesh\n");
+    abort();
+  }
+
+  int index = 0;
+  for (int z = 0; z < depth; z++) {
+    for (int x = 0; x < width; x++) {
+      Vertex* vertex = &vertices[index++];
+      
+      vertex->Position.X = (float)x * terrain->worldScale;
+      vertex->Position.Y = array2Df_get(&terrain->heightMap, x, z);
+      vertex->Position.Z = (float)z * terrain->worldScale;
+      
+      // Texture Coordinates
+      float size = (float)terrain->terrainSize;
+      float textureScale = terrain->textureScale;
+      vertex->Texture.U = textureScale * (float)x / size;
+      vertex->Texture.V = textureScale * (float)z / size;
+    }
+  }
+  
+  assert(index == numVertices);
+
+  int idx = 0;
+
+  for (int z = 0; z < depth - 1; z++) {
+    for (int x = 0; x < width - 1; x++) {
+      GLuint indexBottomLeft  = (GLuint)(z * width + x);
+      GLuint indexTopLeft     = (GLuint)((z + 1) * width + x);
+      GLuint indexTopRight    = (GLuint)((z + 1) * width + x + 1);
+      GLuint indexBottomRight = (GLuint)(z * width + x + 1);
+
+      // top left tri
+      indices[idx++] = indexBottomLeft;
+      indices[idx++] = indexTopLeft;
+      indices[idx++] = indexTopRight;
+
+      // bottom right tri
+      indices[idx++] = indexBottomLeft;
+      indices[idx++] = indexTopRight;
+      indices[idx++] = indexBottomRight;
+    }
+  }
+  
+  tl->numIndices = numIndices;
+
+  calculateNormals(vertices, numVertices, indices, numIndices);
+
+  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices[0]) * numVertices, &vertices[0], GL_STATIC_DRAW);
+
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices[0]) * numIndices, &indices[0], GL_STATIC_DRAW);
+
 }
