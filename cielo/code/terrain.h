@@ -2,6 +2,7 @@
 #define TERRAIN_H
 
 #include "texture.h"
+#include "lod.h"
 
 #include "platform.h"
 #include "gl_load.h"
@@ -56,7 +57,7 @@ struct SingleLodInfo
 typedef struct PatchLod PatchLod;
 struct PatchLod
 {
-  int dore;
+  int core;
   int left;
   int right;
   int top;
@@ -223,9 +224,6 @@ void  createGeomipGrid(struct BaseTerrain* terrain);
 float randomFloatRange(float min, float max);
 int   calcNextPowerOfTwo(int value);
 int   isValuePowerOfTwo(int n);
-int   initLod(struct BaseTerrain* terrain);
-void  calculateMaxLOD(struct BaseTerrain* terrain);
-void  calculateLODRegions(struct BaseTerrain* terrain);
 
 void     triangleListCreate(TriangleList* tl, int width, int depth, BaseTerrain* terrain);
 void     triangleListRender(TriangleList* tl);
