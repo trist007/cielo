@@ -22,6 +22,7 @@
 #define powi(base,exp) (int)powf((float)(base), (float)(exp))
 #define ToRadian(x) (float)(((x) * PI / 180.0f))
 #define ToDegree(x) (float)(((x) * 180.0f / PI ))
+#define Z_FAR 5000.0f
 
 typedef struct Vertex {
   HMM_Vec3 Position;
@@ -38,6 +39,34 @@ struct TriangleList
   GLuint VB;
   GLuint IB;
   int    numIndices;
+};
+
+typedef struct SingleLodInfo SingleLodInfo;
+struct SingleLodInfo
+{
+  int start;
+  int count;
+};
+
+#define LEFT   2
+#define RIGHT  2
+#define TOP    2
+#define BOTTOM 2
+
+typedef struct PatchLod PatchLod;
+struct PatchLod
+{
+  int dore;
+  int left;
+  int right;
+  int top;
+  int bottom;
+};
+
+typedef struct LodInfo LodInfo;
+struct LodInfo
+{
+  SingleLodInfo info [LEFT][RIGHT][TOP][BOTTOM];
 };
 
 typedef struct BaseTerrain BaseTerrain;
@@ -69,7 +98,12 @@ struct BaseTerrain
   int          depth;
   int          width;
   int          patchSize;
+  int          maxLOD;
+  int          numPatchesX;
+  int          numPatchesZ;
   Array2Df     heightMap;
+  PatchLod*    lodMap;
+  int*         lodRegions;
   TriangleList triangleList;
   
 
@@ -189,6 +223,9 @@ void  createGeomipGrid(struct BaseTerrain* terrain);
 float randomFloatRange(float min, float max);
 int   calcNextPowerOfTwo(int value);
 int   isValuePowerOfTwo(int n);
+int   initLod(struct BaseTerrain* terrain);
+void  calculateMaxLOD(struct BaseTerrain* terrain);
+void  calculateLODRegions(struct BaseTerrain* terrain);
 
 void     triangleListCreate(TriangleList* tl, int width, int depth, BaseTerrain* terrain);
 void     triangleListRender(TriangleList* tl);

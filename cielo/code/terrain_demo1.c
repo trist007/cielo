@@ -40,29 +40,36 @@ initTerrainMultiTextures(GameState* gamestate)
 
   float WorldScale                = 2.0f;
   float TextureScale              = 1.0f;
-  gamestate->terrain.worldScale   = WorldScale;
-  gamestate->terrain.textureScale = TextureScale;
 
   int   terrainSize = 513;
+  int   width       = terrainSize;
+  int   depth       = terrainSize;
   float roughness   = 1.0f;
   float minHeight   = 0.0f;
   float maxHeight   = 356.0f;
   float filter      = 0.5f;
   int   patchSize   = 33;
   int   textureSize = 1024;
+  
+  int numPatchesX = (width - 1) / (patchSize - 1);
+  int numPatchesZ = (depth - 1) / (patchSize - 1);
 
   // HMM_Vec3 LightDir = { 0.3f, -1.0f, 0.3f };
   HMM_Vec3 LightDir = { 1.0f, -1.0f, 0.0f };
   HMM_Vec3 rev = Vec3_MulbyScalar(LightDir, -1.0f);
   Vec3_Normalize(&rev);
 
+  gamestate->terrain.worldScale       = WorldScale;
+  gamestate->terrain.textureScale     = TextureScale;
   gamestate->terrain.terrainSize      = terrainSize;
-  gamestate->terrain.width            = terrainSize;
-  gamestate->terrain.depth            = terrainSize;
+  gamestate->terrain.width            = width;
+  gamestate->terrain.depth            = depth;
   gamestate->terrain.roughness        = roughness;
   gamestate->terrain.minHeight        = minHeight;
   gamestate->terrain.maxHeight        = maxHeight;
   gamestate->terrain.patchSize        = patchSize;
+  gamestate->terrain.numPatchesX      = numPatchesX;
+  gamestate->terrain.numPatchesZ      = numPatchesZ;
   gamestate->terrain.textureSize      = textureSize;
   gamestate->terrain.ReversedLightDir = rev;
  
