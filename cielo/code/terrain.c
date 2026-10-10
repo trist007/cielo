@@ -916,6 +916,8 @@ createGeomipGrid(struct BaseTerrain* terrain)
     exit(0);
   }
   
+  terrain->maxLOD = initLod(terrain);
+  
   createGLState(&terrain->triangleList);
   // does with triangleListCreate did
   populateBuffers(terrain, terrain->width, terrain->depth, &terrain->triangleList);
@@ -1019,5 +1021,4 @@ populateBuffers(BaseTerrain* terrain, int width, int depth, TriangleList* tl)
   glBufferData(GL_ARRAY_BUFFER, sizeof(vertices[0]) * numVertices, &vertices[0], GL_STATIC_DRAW);
 
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices[0]) * numIndices, &indices[0], GL_STATIC_DRAW);
-
 }

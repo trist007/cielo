@@ -32,14 +32,15 @@ REM ── MAIN EXE ────────────────────
         .\platform.c ^
         .\terrain_demo1.c ^
         .\terrain.c ^
-        .\texture.c
+        .\texture.c ^
+        .\lod.c
     if %errorlevel% neq 0 ( echo [MAIN] compile failed & goto end )
 
     echo [MAIN] Linking terrain.exe...
     link /INCREMENTAL:NO /OPT:REF /DEBUG ^
         /PDB:terrain.pdb ^
         /out:terrain.exe ^
-        gl_load.obj platform.obj terrain_demo1.obj terrain.obj texture.obj ^
+        gl_load.obj platform.obj terrain_demo1.obj terrain.obj texture.obj lod.obj ^
         %LDFLAGS%
     if %errorlevel% neq 0 ( echo [MAIN] link failed & goto end )
 

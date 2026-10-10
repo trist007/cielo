@@ -95,105 +95,52 @@ printLODMap(struct BaseTerrain* terrain)
 }
 
 void
-updateLOD(HMM_Vec3* pos)
+updateLOD(struct BaseTerrain* terrain, HMM_Vec3* pos)
 {
-    updateLodMapPass1(pos);
-    updateLodMapPass2(pos);
+    updateLodMapPass1(terrain, pos);
+    updateLodMapPass2(terrain);
 }
 
 void
 updateLodMapPass1(struct BaseTerrain* terrain, HMM_Vec3* pos)
 {
-    int CenterStep = terrain->patchSize / 2;
+  int centerStep = terrain->patchSize / 2;
 
-    for (int LodMapZ = 0 ; LodMapZ < terrain->numPatchesZ ; LodMapZ++) {
-        for (int LodMapX = 0 ; LodMapX < terrain->numPatchesX ; LodMapX++) {
-            int x = LodMapX * (terrain->patchSize - 1) + CenterStep;
-            int z = LodMapZ * (terrain->patchSize - 1) + CenterStep;
+  for (int lodMapZ = 0 ; lodMapZ < terrain->numPatchesZ ; lodMapZ++) {
+    for (int lodMapX = 0 ; lodMapX < terrain->numPatchesX ; lodMapX++) {
+      int x = lodMapX * (terrain->patchSize - 1) + centerStep;
+      int z = lodMapZ * (terrain->patchSize - 1) + centerStep;
 
-            HMM_Vec3 PatchCenter = (HMM_Vec3){x * (float)terrain->worldScale, 0.0f, z * (float)terrain->worldScale};
+      HMM_Vec3 patchCenter = HMM_V3(x * (float)terrain->worldScale, 0.0f, z * (float)terrain->worldScale);
 
-            float distanceToCamera = CameraPos.Distance(PatchCenter);
-            /*    float Distance(const Vector3f& v) const
-                  {
-                      float DistSquared = DistanceSquared(v);
-                      float distance = sqrtf(DistSquared);
-                      return distance;
-                  }
-                  
-                  float DistanceSquared(const Vector3f& v) const
-                  {
-                      float delta_x = x - v.x;
-                      float delta_y = y - v.y;
-                      float delta_z = z - v.z;
+      // float distanceToCamera = CameraPos.Distance(PatchCenter);
+      float distanceToCamera = HMM_LenV3(HMM_SubV3(*pos, patchCenter));
 
-                      float DistanceSquared = delta_x * delta_x + delta_y * delta_y + delta_z * delta_z;
+      int coreLod = distanceToLOD(terrain, distanceToCamera);
 
-                      return DistanceSquared;
-                  }
-            */
-
-            int CoreLod = distanceToLOD(distanceToCamera);
-
-            PatchLod* pPatchLOD = m_map.GetAddr(LodMapX, LodMapZ);
-            pPatchLOD->Core = CoreLod;
-        }
+      PatchLod* patchLod = &terrain->lodMap[lodMapZ * terrain->numPatchesX + lodMapX];
+      patchLod->core = coreLod;
     }
+  }
 }
 
 void
-updateLodMapPass2(struct BaseTerrain* terrain, HMM_Vec3* pos)
+updateLodMapPass2(struct BaseTerrain* terrain)
 {
-    int Step = terrain->patchSize / 2;
+  int nx = terrain->numPatchesX;
+  int nz = terrain->numPatchesZ;
 
-    for (int LodMapZ = 0 ; LodMapZ < terrain->numPatchesZ ; LodMapZ++) {
-        for (int LodMapX = 0 ; LodMapX < terrain->numPatchesX ; LodMapX++) {
-            int CoreLod = m_map.Get(LodMapX, LodMapZ).Core;
-
-            int IndexLeft   = LodMapX;
-            int IndexRight  = LodMapX;
-            int IndexTop    = LodMapZ;
-            int IndexBottom = LodMapZ;
-
-            if (LodMapX > 0) {
-                IndexLeft--;
-
-                if (m_map.Get(IndexLeft, LodMapZ).Core > CoreLod) {
-                    m_map.At(LodMapX, LodMapZ).Left = 1;
-                } else {
-                    m_map.At(LodMapX, LodMapZ).Left = 0;
-                }
-            }
-
-            if (LodMapX < terrain->numPatchesX - 1) {
-                IndexRight++;
-
-                if (m_map.Get(IndexRight, LodMapZ).Core > CoreLod) {
-                    m_map.At(LodMapX, LodMapZ).Right = 1;
-                } else {
-                    m_map.At(LodMapX, LodMapZ).Right = 0;
-                }
-            }
-
-            if (LodMapZ > 0) {
-                IndexBottom--;
-
-                if (m_map.Get(LodMapX, IndexBottom).Core > CoreLod) {
-                    m_map.At(LodMapX, LodMapZ).Bottom = 1;
-                } else {
-                    m_map.At(LodMapX, LodMapZ).Bottom = 0;
-                }
-            }
-
-            if (LodMapZ < terrain->numPatchesZ - 1) {
-                IndexTop++;
-
-                if (m_map.Get(LodMapX, IndexTop).Core > CoreLod) {
-                    m_map.At(LodMapX, LodMapZ).Top = 1;
-                } else {
-                    m_map.At(LodMapX, LodMapZ).Top = 0;
-                }
-            }
-        }
+  for (int z = 0; z < nz; z++)
+  {
+    for (int x = 0; x < nx; x++)
+    {
+      PatchLod* patch = &terrain->lodMap[z * nx + x];
+      int       core  = patch->core;
+      
+      patch->left   = (x > 0)      && terrain->lodMap[z * nx + (x - 1)].core > core;
+      patch->right  = (x < nx - 1) && terrain->lodMap[z * nx + (x + 1)].core > core;
+      patch->bottom = (z > 0)      && terrain->lodMap[(z - 1) * nx + x].core > core;
+      patch->top    = (z < nz - 1) && terrain->lodMap[(z + 1) * nx + x].core > core;
     }
+  }
 }

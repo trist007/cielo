@@ -9,6 +9,90 @@
 #include "HandmadeMath.h"
 
 static void
+createGLProgram(struct GameState* gamestate)
+{
+  gamestate->shaderProg = glCreateProgram();
+
+  GLint VPLoc               = -1;
+  GLint minHeightLoc        = -1;
+  GLint maxHeightLoc        = -1;
+  GLint tex0HeightLoc       = -1;
+  GLint tex1HeightLoc       = -1;
+  GLint tex2HeightLoc       = -1;
+  GLint tex3HeightLoc       = -1;
+  GLint tex0UnitLoc         = -1;
+  GLint tex1UnitLoc         = -1;
+  GLint tex2UnitLoc         = -1;
+  GLint tex3UnitLoc         = -1;
+
+  if (!AddShader(gamestate, GL_VERTEX_SHADER, "terrain-vertex.glsl"))
+  {
+    fprintf(stderr, "ERROR: failed to AddShader terrain-vertex.glsl\n");
+    abort();
+  }
+
+  if (!AddShader(gamestate, GL_FRAGMENT_SHADER, "terrain-fragment.glsl"))
+  {
+    fprintf(stderr, "ERROR: failed to AddShader terrain-fragment.glsl\n");
+    abort();
+  }
+
+  GLint Success = 0;
+  GLchar ErrorLog[1024] = { 0 };
+
+  // Link shaders to program
+  glLinkProgram(gamestate->shaderProg);
+  
+  gamestate->terrain.VPLoc               = glGetUniformLocation(gamestate->shaderProg, "gVP");
+  gamestate->terrain.minHeightLoc        = glGetUniformLocation(gamestate->shaderProg, "gMinHeight");
+  gamestate->terrain.maxHeightLoc        = glGetUniformLocation(gamestate->shaderProg, "gMaxHeight");
+  gamestate->terrain.tex0UnitLoc         = glGetUniformLocation(gamestate->shaderProg, "gTextureHeight0");
+  gamestate->terrain.tex1UnitLoc         = glGetUniformLocation(gamestate->shaderProg, "gTextureHeight1");
+  gamestate->terrain.tex2UnitLoc         = glGetUniformLocation(gamestate->shaderProg, "gTextureHeight2");
+  gamestate->terrain.tex3UnitLoc         = glGetUniformLocation(gamestate->shaderProg, "gTextureHeight3");
+  gamestate->terrain.tex0HeightLoc       = glGetUniformLocation(gamestate->shaderProg, "gHeight0");
+  gamestate->terrain.tex1HeightLoc       = glGetUniformLocation(gamestate->shaderProg, "gHeight1");
+  gamestate->terrain.tex2HeightLoc       = glGetUniformLocation(gamestate->shaderProg, "gHeight2");
+  gamestate->terrain.tex3HeightLoc       = glGetUniformLocation(gamestate->shaderProg, "gHeight3");
+  gamestate->terrain.reversedLightDirLoc = glGetUniformLocation(gamestate->shaderProg, "gReversedLightDir");
+
+  // check if shaders linked successfully
+  glGetProgramiv(gamestate->shaderProg, GL_LINK_STATUS, &Success);
+
+  if (Success == 0) {
+    glGetProgramInfoLog(gamestate->shaderProg, sizeof(ErrorLog), NULL, ErrorLog);
+    fprintf(stderr, "Error linking shader program: '%s'\n", ErrorLog);
+    abort();
+  }
+
+  // validate program
+  glValidateProgram(gamestate->shaderProg);
+
+  // check if validation went successfully
+  glGetProgramiv(gamestate->shaderProg, GL_VALIDATE_STATUS, &Success);
+
+  if (Success == 0) {
+    glGetProgramInfoLog(gamestate->shaderProg, sizeof(ErrorLog), NULL, ErrorLog);
+    fprintf(stderr, "Invalid shader program: '%s'\n", ErrorLog);
+    abort();
+  }
+  // now that shaders are in memory we can delete
+  for (int i = 0; i < gamestate->shaderCount; i++)
+    glDeleteShader(gamestate->shaderList[i]);
+
+  gamestate->shaderCount = 0;
+
+  gamestate->terrain.VPLoc = getUniformLocation(gamestate, "gVP");
+  gamestate->terrain.shaderProg = gamestate->shaderProg;
+
+  if (gamestate->terrain.VPLoc == INVALID_UNIFORM_LOCATION) {
+    free(gamestate);
+    abort();
+  }
+ 
+}
+
+static void
 initTerrainMultiTextures(GameState* gamestate)
 {
   // Load Textures
@@ -38,6 +122,7 @@ initTerrainMultiTextures(GameState* gamestate)
     }
   }
 
+  // Configure terrain details
   float WorldScale                = 2.0f;
   float TextureScale              = 1.0f;
 
@@ -228,89 +313,7 @@ int main(int argc, char** argv)
     abort();
   }
   
-  // Add light
-  // HMM_Vec3 LightDir = (HMM_Vec3) { 1.0f, -1.0f, 0.0f };
-  gamestate->shaderProg = glCreateProgram();
-
-  GLint VPLoc               = -1;
-  GLint minHeightLoc        = -1;
-  GLint maxHeightLoc        = -1;
-  GLint tex0HeightLoc       = -1;
-  GLint tex1HeightLoc       = -1;
-  GLint tex2HeightLoc       = -1;
-  GLint tex3HeightLoc       = -1;
-  GLint tex0UnitLoc         = -1;
-  GLint tex1UnitLoc         = -1;
-  GLint tex2UnitLoc         = -1;
-  GLint tex3UnitLoc         = -1;
-
-  if (!AddShader(gamestate, GL_VERTEX_SHADER, "terrain-vertex.glsl"))
-  {
-    fprintf(stderr, "ERROR: failed to AddShader terrain-vertex.glsl\n");
-    abort();
-  }
-
-  if (!AddShader(gamestate, GL_FRAGMENT_SHADER, "terrain-fragment.glsl"))
-  {
-    fprintf(stderr, "ERROR: failed to AddShader terrain-fragment.glsl\n");
-    abort();
-  }
-
-  GLint Success = 0;
-  GLchar ErrorLog[1024] = { 0 };
-
-  // Link shaders to program
-  glLinkProgram(gamestate->shaderProg);
-  
-  gamestate->terrain.VPLoc               = glGetUniformLocation(gamestate->shaderProg, "gVP");
-  gamestate->terrain.minHeightLoc        = glGetUniformLocation(gamestate->shaderProg, "gMinHeight");
-  gamestate->terrain.maxHeightLoc        = glGetUniformLocation(gamestate->shaderProg, "gMaxHeight");
-  gamestate->terrain.tex0UnitLoc         = glGetUniformLocation(gamestate->shaderProg, "gTextureHeight0");
-  gamestate->terrain.tex1UnitLoc         = glGetUniformLocation(gamestate->shaderProg, "gTextureHeight1");
-  gamestate->terrain.tex2UnitLoc         = glGetUniformLocation(gamestate->shaderProg, "gTextureHeight2");
-  gamestate->terrain.tex3UnitLoc         = glGetUniformLocation(gamestate->shaderProg, "gTextureHeight3");
-  gamestate->terrain.tex0HeightLoc       = glGetUniformLocation(gamestate->shaderProg, "gHeight0");
-  gamestate->terrain.tex1HeightLoc       = glGetUniformLocation(gamestate->shaderProg, "gHeight1");
-  gamestate->terrain.tex2HeightLoc       = glGetUniformLocation(gamestate->shaderProg, "gHeight2");
-  gamestate->terrain.tex3HeightLoc       = glGetUniformLocation(gamestate->shaderProg, "gHeight3");
-  gamestate->terrain.reversedLightDirLoc = glGetUniformLocation(gamestate->shaderProg, "gReversedLightDir");
-
-  // check if shaders linked successfully
-  glGetProgramiv(gamestate->shaderProg, GL_LINK_STATUS, &Success);
-
-  if (Success == 0) {
-    glGetProgramInfoLog(gamestate->shaderProg, sizeof(ErrorLog), NULL, ErrorLog);
-    fprintf(stderr, "Error linking shader program: '%s'\n", ErrorLog);
-    abort();
-  }
-
-  // validate program
-  glValidateProgram(gamestate->shaderProg);
-
-  // check if validation went successfully
-  glGetProgramiv(gamestate->shaderProg, GL_VALIDATE_STATUS, &Success);
-
-  if (Success == 0) {
-    glGetProgramInfoLog(gamestate->shaderProg, sizeof(ErrorLog), NULL, ErrorLog);
-    fprintf(stderr, "Invalid shader program: '%s'\n", ErrorLog);
-    abort();
-  }
-
-  // now that shaders are in memory we can delete
-  for (int i = 0; i < gamestate->shaderCount; i++)
-    glDeleteShader(gamestate->shaderList[i]);
-
-  gamestate->shaderCount = 0;
-
-  gamestate->terrain.VPLoc = getUniformLocation(gamestate, "gVP");
-
-  if (gamestate->terrain.VPLoc == INVALID_UNIFORM_LOCATION) {
-    free(gamestate);
-    abort();
-  }
-  
-  gamestate->terrain.shaderProg = gamestate->shaderProg;
-  // gamestate->terrain.VPLoc      = gamestate->VPLoc;
+  createGLProgram(gamestate);
 
   // Create Camera
   HMM_Vec3 Pos = {{250.0f, 450.0f, -150.0f}};
