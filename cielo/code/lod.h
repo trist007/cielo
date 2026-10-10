@@ -3,10 +3,41 @@
 
 #include "HandmadeMath.h"
 
+#define Z_FAR 5000.0f
+
+#define LEFT   2
+#define RIGHT  2
+#define TOP    2
+#define BOTTOM 2
+
+typedef struct PatchLod PatchLod;
+struct PatchLod
+{
+  int core;
+  int left;
+  int right;
+  int top;
+  int bottom;
+};
+
+typedef struct SingleLodInfo SingleLodInfo;
+struct SingleLodInfo
+{
+  int start;
+  int count;
+};
+
+typedef struct LodInfo LodInfo;
+struct LodInfo
+{
+  SingleLodInfo info [LEFT][RIGHT][TOP][BOTTOM];
+};
+
 struct BaseTerrain;
 
-int   initLod(struct BaseTerrain* terrain);
 void  calculateMaxLOD(struct BaseTerrain* terrain);
+int   initLod(struct BaseTerrain* terrain);
+void  destroyLod(struct BaseTerrain* terrain);
 void  calculateLODRegions(struct BaseTerrain* terrain);
 int   distanceToLOD(struct BaseTerrain* terrain, float distance);
 void  printLODMap(struct BaseTerrain* terrain);

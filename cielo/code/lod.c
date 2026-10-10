@@ -24,6 +24,9 @@ initLod(struct BaseTerrain* terrain)
 {
   calculateMaxLOD(terrain);
   
+  if (terrain->lodMap) free(terrain->lodMap);
+  if (terrain->lodRegions) free(terrain->lodRegions);
+  
   terrain->lodMap = calloc((size_t)terrain->numPatchesX * terrain->numPatchesZ, sizeof(PatchLod)); 
   
   if (!terrain->lodMap)
@@ -40,7 +43,17 @@ initLod(struct BaseTerrain* terrain)
     abort();
   }
 
+  calculateLODRegions(terrain);
   return(terrain->maxLOD);
+}
+
+void
+destroyLod(struct BaseTerrain* terrain)
+{
+  free(terrain->lodMap);
+  free(terrain->lodRegions);
+  terrain->lodMap = NULL;
+  terrain->lodRegions = NULL;
 }
 
 void
@@ -48,7 +61,7 @@ calculateLODRegions(struct BaseTerrain* terrain)
 {
   int sum = 0;
 
-  for (int i = 0; i < terrain->maxLOD; i++) sum += (i + 1);
+  for (int i = 0; i <= terrain->maxLOD; i++) sum += (i + 1);
   
   printf("Sum %d\n", sum);
   
@@ -59,7 +72,9 @@ calculateLODRegions(struct BaseTerrain* terrain)
   for (int i = 0; i <= terrain->maxLOD; i++)
   {
     int currentRange = (int)(x * (i + 1));
-
+    terrain->lodRegions[i] = temp + currentRange;
+    temp += currentRange;
+    printf("%d %d\n", i, terrain->lodRegions[i]);
   }
 }
 
