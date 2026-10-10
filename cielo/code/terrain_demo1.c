@@ -5,6 +5,7 @@
 #include <math.h>
 
 #include "terrain.h"
+#include "geomip.h"
 #include "texture.h"
 #include "HandmadeMath.h"
 
@@ -357,8 +358,8 @@ int main(int argc, char** argv)
 
     processInput(gamestate->window, gamestate);
 
-    // renderScene(&gamestate->terrain, &gamestate->gameCamera);
-    geomipGridRender(&gamestate->terrain, &gamestate->gameCamera.pos);
+    renderScene(&gamestate->terrain, &gamestate->gameCamera);
+    // geomipGridRender(&gamestate->terrain, &gamestate->gameCamera.pos);
     platform_swap_buffers(gamestate->window);
   }
 

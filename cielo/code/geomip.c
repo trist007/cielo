@@ -1,4 +1,6 @@
 #include "geomip.h"
+#include "terrain.h"
+#include "assert.h"
 
 static int
 calcNumIndices(const BaseTerrain* terrain)
@@ -307,10 +309,15 @@ createGeomipGrid(struct BaseTerrain* terrain)
   }
   
   terrain->maxLOD = initLod(terrain);
-  
+  if (terrain->maxLOD >= MAX_LODS)
+  {
+    fprintf(stderr, "maxLOD %d exceeds MAX_LODS %d\n", terrain->maxLOD, MAX_LODS);
+    abort();
+  } 
+
   createGLState(&terrain->triangleList);
   // does with triangleListCreate did
-  populateBuffers(terrain, terrain->width, terrain->depth, &terrain->triangleList);
+  populateGeomipBuffers(terrain, terrain->width, terrain->depth, &terrain->triangleList);
    
   // Reset Bindings
   glBindVertexArray(0);

@@ -3,6 +3,7 @@
 
 #include "texture.h"
 #include "lod.h"
+#include "geomip.h"
 
 #include "platform.h"
 #include "gl_load.h"
@@ -75,7 +76,7 @@ struct BaseTerrain
   int          numPatchesZ;
   Array2Df     heightMap;
   PatchLod*    lodMap;
-  LodInfo*     lodInfo;
+  LodInfo      lodInfo[MAX_LODS];
   int*         lodRegions;
   TriangleList triangleList;
   
