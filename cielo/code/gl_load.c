@@ -17,6 +17,7 @@ PFNGLDELETESHADERPROC            glDeleteShader;
 PFNGLDELETETEXTURESPROC          glDeleteTextures;
 PFNGLDELETEVERTEXARRAYSPROC      glDeleteVertexArrays;
 PFNGLDRAWELEMENTSPROC            glDrawElements;
+PFNGLDRAWELEMENTSBASEVERTEXPROC  glDrawElementsBaseVertex;
 PFNGLENABLEPROC                  glEnable;
 PFNGLENABLEVERTEXATTRIBARRAYPROC glEnableVertexAttribArray;
 PFNGLFRONTFACEPROC               glFrontFace;
@@ -63,6 +64,7 @@ int gl_load_all(GL_get_proc_address func)
   glDeleteTextures          = (PFNGLDELETETEXTURESPROC) func("glDeleteTextures");
   glDeleteVertexArrays      = (PFNGLDELETEVERTEXARRAYSPROC) func("glDeleteVertexArrays");
   glDrawElements            = (PFNGLDRAWELEMENTSPROC) func("glDrawElements");
+  glDrawElementsBaseVertex  = (PFNGLDRAWELEMENTSBASEVERTEXPROC) func("glDrawElementsBaseVertex");
   glEnable                  = (PFNGLENABLEPROC) func("glEnable");
   glEnableVertexAttribArray = (PFNGLENABLEVERTEXATTRIBARRAYPROC) func("glEnableVertexAttribArray");
   glFrontFace               = (PFNGLFRONTFACEPROC) func("glFrontFace");

@@ -56,7 +56,7 @@ HMM_Mat4 Camera_GetViewProjMatrix(const BasicCamera* camera)
   return HMM_MulM4(camera->projection, view);
 }
 
-void renderScene(BaseTerrain* terrain, const BasicCamera* camera)
+void renderScene(BaseTerrain* terrain, BasicCamera* camera)
 {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -68,7 +68,8 @@ void renderScene(BaseTerrain* terrain, const BasicCamera* camera)
 
   glUniformMatrix4fv(terrain->VPLoc, 1, GL_FALSE, (const GLfloat*)&VP);
 
-  triangleListRender(&terrain->triangleList);
+  // triangleListRender(&terrain->triangleList);
+  geomipGridRender(terrain, &camera->pos);
 }
 
 void triangleListCreate(TriangleList* tl, int width, int depth, BaseTerrain* terrain)
@@ -884,48 +885,6 @@ Vec3_MulbyScalar(HMM_Vec3 a, float b)
   HMM_Vec3 result = { a.X * b, a.Y * b, a.Z * b };
   
   return(result);
-}
-
-void
-createGeomipGrid(struct BaseTerrain* terrain)
-{
-  if ((terrain->width - 1) % (terrain->patchSize - 1) != 0)
-  {
-    int recommendedWidth = ((terrain->width - 1 + terrain->patchSize - 1) / (terrain->patchSize - 1)) * (terrain->patchSize - 1) + 1;
-    printf("Width minus 1 (%d) must be divisible by patchSize minus 1 (%d)\n", terrain->width, terrain->patchSize);
-    printf("Try using Width = %d\n", recommendedWidth);
-    exit(0);
-  }
-  if ((terrain->depth - 1) % (terrain->patchSize - 1) != 0)
-  {
-    int recommendedDepth = ((terrain->depth - 1 + terrain->patchSize - 1) / (terrain->patchSize - 1)) * (terrain->patchSize - 1) + 1;
-    printf("Depth minus 1 (%d) must be divisible by patchSize minus 1 (%d)\n", terrain->depth, terrain->patchSize);
-    printf("Try using Depth = %d\n", recommendedDepth);
-    exit(0);
-  }
-   
-  if (terrain->patchSize < 3)
-  {
-    printf("The minimum patch size is 3 (%d)\n", terrain->patchSize);
-    exit(0);
-  }
-  
-  if (terrain->patchSize % 2 == 0)
-  {
-    printf("Patch size must be an odder number (%d)\n", terrain->patchSize);
-    exit(0);
-  }
-  
-  terrain->maxLOD = initLod(terrain);
-  
-  createGLState(&terrain->triangleList);
-  // does with triangleListCreate did
-  populateBuffers(terrain, terrain->width, terrain->depth, &terrain->triangleList);
-   
-  // Reset Bindings
-  glBindVertexArray(0);
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
 void

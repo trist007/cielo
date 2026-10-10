@@ -357,7 +357,8 @@ int main(int argc, char** argv)
 
     processInput(gamestate->window, gamestate);
 
-    renderScene(&gamestate->terrain, &gamestate->gameCamera);
+    // renderScene(&gamestate->terrain, &gamestate->gameCamera);
+    geomipGridRender(&gamestate->terrain, &gamestate->gameCamera.pos);
     platform_swap_buffers(gamestate->window);
   }
 

@@ -75,6 +75,7 @@ struct BaseTerrain
   int          numPatchesZ;
   Array2Df     heightMap;
   PatchLod*    lodMap;
+  LodInfo*     lodInfo;
   int*         lodRegions;
   TriangleList triangleList;
   
@@ -178,7 +179,7 @@ void   initBasicCamera(BasicCamera *gameCamera, PersProjInfo pers, HMM_Vec3 Pos,
 GLuint getUniformLocation(GameState* gamestate, const char* pUniformName);
 void   terrainLoadHeightMapFile(BaseTerrain* terrain, const char* pFilename);
 void   terrainLoadFromFile(BaseTerrain* terrain, const char* pFilename);
-void   renderScene(BaseTerrain* terrain, const BasicCamera* camera);
+void   renderScene(BaseTerrain* terrain, BasicCamera* camera);
 void   createGLState(TriangleList* tl);
 void   populateBuffers(BaseTerrain* terrain, int width, int depth, TriangleList* tl);
 
@@ -191,7 +192,7 @@ float getHeightInterpolated(BaseTerrain* terrain, float x, float z);
 
 void  createMidpointDisplacementF32(struct BaseTerrain* terrain, int terrainSize, float roughness);
 void  createMidpointDisplacement(struct BaseTerrain* terrain, int terrainSize, float roughness, float minHeight, float maxHeight);
-void  createGeomipGrid(struct BaseTerrain* terrain);
+
 float randomFloatRange(float min, float max);
 int   calcNextPowerOfTwo(int value);
 int   isValuePowerOfTwo(int n);

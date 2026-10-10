@@ -3,6 +3,7 @@
 
 #include "HandmadeMath.h"
 
+#define MAX_LODS 16
 #define Z_FAR 5000.0f
 
 #define LEFT   2
