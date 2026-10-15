@@ -69,7 +69,7 @@ void renderScene(BaseTerrain* terrain, BasicCamera* camera)
   glUniformMatrix4fv(terrain->VPLoc, 1, GL_FALSE, (const GLfloat*)&VP);
 
   // triangleListRender(&terrain->triangleList);
-  geomipGridRender(terrain, &camera->pos);
+  geomipGridRender(terrain, &camera->pos, &VP);
 }
 
 void triangleListCreate(TriangleList* tl, int width, int depth, BaseTerrain* terrain)

@@ -42,6 +42,19 @@ struct TriangleList
   int    numIndices;
 };
 
+typedef struct PatchBounds PatchBounds;
+struct PatchBounds
+{
+  float minY, maxY;
+};
+
+typedef struct Plane Plane;
+struct Plane
+{
+  HMM_Vec3 n;
+  float d;
+};
+
 typedef struct BaseTerrain BaseTerrain;
 struct BaseTerrain
 {
@@ -80,6 +93,7 @@ struct BaseTerrain
   int*         lodRegions;
   TriangleList triangleList;
   
+  PatchBounds* patchBounds;
 
   HMM_Vec3 ReversedLightDir;
 };

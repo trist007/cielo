@@ -2,6 +2,7 @@
 #include "terrain.h"
 #include "assert.h"
 #include "lod.h"
+#include "float.h"
 
 static int
 calcNumIndices(const BaseTerrain* terrain)
@@ -233,7 +234,7 @@ populateGeomipBuffers(BaseTerrain* terrain, int width, int depth, TriangleList* 
 {
   int numVertices = width * depth;
 
-  Vertex* vertices = (Vertex*)calloc(numVertices, sizeof(Vertex));  // calloc: normals start at zero
+  Vertex* vertices = (Vertex*)calloc(numVertices, sizeof(Vertex));
   if (!vertices)
   {
     fprintf(stderr, "Out of memory building terrain vertices\n");
@@ -282,6 +283,37 @@ populateGeomipBuffers(BaseTerrain* terrain, int width, int depth, TriangleList* 
   free(indices);
 }
 
+static void
+calcPatchBounds(BaseTerrain* terrain)
+{
+  int n = terrain->numPatchesX * terrain->numPatchesZ;
+  terrain->patchBounds = malloc(sizeof(PatchBounds) * n);
+
+  for (int pz = 0; pz < terrain->numPatchesZ; pz++)
+  {
+    for (int px = 0; px < terrain->numPatchesX; px++)
+    {
+      int x0 = px * (terrain->patchSize - 1);
+      int z0 = pz * (terrain->patchSize - 1);
+
+      float lo =  FLT_MAX;
+      float hi = -FLT_MAX;
+
+      for (int z = z0; z < z0 + terrain->patchSize; z++)
+      {
+        for (int x = x0; x < x0 + terrain->patchSize; x++)
+        {
+          float h = terrain->heightMap.data[z * terrain->width + x]; // your accessor
+          if (h < lo) lo = h;
+          if (h > hi) hi = h;
+        }
+      }
+
+      terrain->patchBounds[pz * terrain->numPatchesX + px] = (PatchBounds){ lo, hi };
+    }
+  }
+}
+
 void
 createGeomipGrid(struct BaseTerrain* terrain)
 {
@@ -318,6 +350,8 @@ createGeomipGrid(struct BaseTerrain* terrain)
     fprintf(stderr, "maxLOD %d exceeds MAX_LODS %d\n", terrain->maxLOD, MAX_LODS);
     abort();
   } 
+  
+  calcPatchBounds(terrain);
 
   createGLState(&terrain->triangleList);
   // does with triangleListCreate did
@@ -329,10 +363,80 @@ createGeomipGrid(struct BaseTerrain* terrain)
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
+static Plane
+makePlane(HMM_Mat4 m, int row, float sign)
+{
+    // plane = row3 + sign * row_i
+    Plane p;
+    p.n.X = m.Elements[0][3] + sign * m.Elements[0][row];
+    p.n.Y = m.Elements[1][3] + sign * m.Elements[1][row];
+    p.n.Z = m.Elements[2][3] + sign * m.Elements[2][row];
+    p.d   = m.Elements[3][3] + sign * m.Elements[3][row];
+    float len = HMM_LenV3(p.n);
+    p.n = HMM_MulV3F(p.n, 1.0f / len);
+    p.d /= len;
+    return p;
+  }
+
+static void
+extractFrustum(HMM_Mat4 vp, Plane out[6])
+{
+    out[0] = makePlane(vp, 0,  1.0f); // left
+    out[1] = makePlane(vp, 0, -1.0f); // right
+    out[2] = makePlane(vp, 1,  1.0f); // bottom
+    out[3] = makePlane(vp, 1, -1.0f); // top
+    out[4] = makePlane(vp, 2,  1.0f); // near (OpenGL / _NO)
+    out[5] = makePlane(vp, 2, -1.0f); // far
+}
+
+static int
+sphereInFrustum(const Plane f[6], HMM_Vec3 c, float r)
+{
+    for (int i = 0; i < 6; i++)
+        if (HMM_DotV3(f[i].n, c) + f[i].d < -r) return 0;
+    return 1;
+}
+
+static int
+aabbInFrustum(const Plane f[6], HMM_Vec3 mn, HMM_Vec3 mx)
+{
+  for (int i = 0; i < 6; i++)
+  {
+    // pick the AABB corner furthest along the plane normal
+    HMM_Vec3 p = HMM_V3(f[i].n.X >= 0.0f ? mx.X : mn.X,
+                        f[i].n.Y >= 0.0f ? mx.Y : mn.Y,
+                        f[i].n.Z >= 0.0f ? mx.Z : mn.Z);
+
+    if (HMM_DotV3(f[i].n, p) + f[i].d < 0.0f)
+      return 0; // fully outside this plane
+  }
+  return 1;
+}
+
+static int
+isPatchInsideFrustum(BaseTerrain* terrain, const Plane f[6], int patchX, int patchZ)
+{
+  PatchBounds* b = &terrain->patchBounds[patchZ * terrain->numPatchesX + patchX];
+
+  int   x0 = patchX * (terrain->patchSize - 1);
+  int   z0 = patchZ * (terrain->patchSize - 1);
+  float s  = terrain->worldScale;
+
+  HMM_Vec3 mn = HMM_V3(x0 * s, b->minY, z0 * s);
+  HMM_Vec3 mx = HMM_V3((x0 + terrain->patchSize - 1) * s,
+                       b->maxY,
+                       (z0 + terrain->patchSize - 1) * s);
+
+  return aabbInFrustum(f, mn, mx);
+}
+
 void
-geomipGridRender(BaseTerrain* terrain, HMM_Vec3* cameraPos)
+geomipGridRender(BaseTerrain* terrain, HMM_Vec3* cameraPos, HMM_Mat4* viewProj)
 {
   updateLOD(terrain, cameraPos);
+  
+  Plane frustum[6];
+  extractFrustum(*viewProj, frustum);
  
   glBindVertexArray(terrain->triangleList.VAO);
  
@@ -340,6 +444,9 @@ geomipGridRender(BaseTerrain* terrain, HMM_Vec3* cameraPos)
   {
     for (int patchX = 0; patchX < terrain->numPatchesX; patchX++)
     {
+      if (!isPatchInsideFrustum(terrain, frustum, patchX, patchZ))
+        continue;
+
       PatchLod*      plod = &terrain->lodMap[patchZ * terrain->numPatchesX + patchX];
       SingleLodInfo* info = &terrain->lodInfo[plod->core].info[plod->left][plod->right][plod->top][plod->bottom];
  
@@ -356,3 +463,4 @@ geomipGridRender(BaseTerrain* terrain, HMM_Vec3* cameraPos)
  
   glBindVertexArray(0);
 }
+

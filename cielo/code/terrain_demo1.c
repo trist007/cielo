@@ -373,6 +373,7 @@ int main(int argc, char** argv)
     glDeleteTextures(1, &gamestate->texture[i].textureObj);
 
   free(gamestate->terrain.heightMap.data);
+  free(gamestate->terrain.patchBounds);
   destroyLod(&gamestate->terrain);
   gamestate->terrain.heightMap.data = NULL;
   gamestate->terrain.heightMap.rows = 0;
