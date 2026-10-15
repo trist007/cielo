@@ -1,6 +1,7 @@
 #include "geomip.h"
 #include "terrain.h"
 #include "assert.h"
+#include "lod.h"
 
 static int
 calcNumIndices(const BaseTerrain* terrain)
@@ -38,6 +39,7 @@ createTriangleFan(const BaseTerrain* terrain, int index, GLuint* indices,
 {
   int w = terrain->width;
 
+  // NOTE(trist007): shift left by 1 is the same as powi(2)
   int stepLeft   = 1 << lodLeft;
   int stepRight  = 1 << lodRight;
   int stepTop    = 1 << lodTop;
@@ -113,8 +115,9 @@ static int
 initIndicesLODSingle(const BaseTerrain* terrain, int index, GLuint* indices,
                      int lodCore, int lodLeft, int lodRight, int lodTop, int lodBottom)
 {
-  int fanStep = 1 << (lodCore + 1);                // lod 0 -> 2, lod 1 -> 4, lod 2 -> 8 ...
-  int endPos  = terrain->patchSize - 1 - fanStep;  // patch 5, step 2 -> 2; patch 9, step 2 -> 6
+  // how many steps to get to the next triangle fan
+  int fanStep = 1 << (lodCore + 1);                // lod = 0 -> 2, lod = 1 -> 4, lod = 2 -> 8 ...
+  int endPos  = terrain->patchSize - 1 - fanStep;  // patch size 5, fan step 2 -> EndPos = 2; patch size 9, fan step 2 -> EndPos = 6
 
   for (int z = 0; z <= endPos; z += fanStep)
   {
@@ -138,13 +141,13 @@ initIndicesLOD(BaseTerrain* terrain, int index, GLuint* indices, int lod)
 {
   int totalIndicesForLOD = 0;
 
-  for (int l = 0; l < 2; l++)
+  for (int l = 0; l < LEFT; l++)
   {
-    for (int r = 0; r < 2; r++)
+    for (int r = 0; r < RIGHT; r++)
     {
-      for (int t = 0; t < 2; t++)
+      for (int t = 0; t < TOP; t++)
       {
-        for (int b = 0; b < 2; b++)
+        for (int b = 0; b < BOTTOM; b++)
         {
           SingleLodInfo* info = &terrain->lodInfo[lod].info[l][r][t][b];
 
@@ -271,6 +274,7 @@ populateGeomipBuffers(BaseTerrain* terrain, int width, int depth, TriangleList* 
 
   calculateGeomipNormals(terrain, vertices, numVertices, indices);
 
+  // Creates and initializes a new data store for the buffer object currently bound to a target
   glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * numVertices, vertices, GL_STATIC_DRAW);
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * numIndices, indices, GL_STATIC_DRAW);
 
@@ -336,13 +340,13 @@ geomipGridRender(BaseTerrain* terrain, HMM_Vec3* cameraPos)
   {
     for (int patchX = 0; patchX < terrain->numPatchesX; patchX++)
     {
-      PatchLod* plod = &terrain->lodMap[patchZ * terrain->numPatchesX + patchX];
-      SingleLodInfo*  info = &terrain->lodInfo[plod->core].info[plod->left][plod->right][plod->top][plod->bottom];
+      PatchLod*      plod = &terrain->lodMap[patchZ * terrain->numPatchesX + patchX];
+      SingleLodInfo* info = &terrain->lodInfo[plod->core].info[plod->left][plod->right][plod->top][plod->bottom];
  
       size_t baseIndex = sizeof(GLuint) * (size_t)info->start;
  
-      int z = patchZ * (terrain->patchSize - 1);
-      int x = patchX * (terrain->patchSize - 1);
+      int z          = patchZ * (terrain->patchSize - 1);
+      int x          = patchX * (terrain->patchSize - 1);
       int baseVertex = z * terrain->width + x;
  
       glDrawElementsBaseVertex(GL_TRIANGLES, info->count, GL_UNSIGNED_INT,
